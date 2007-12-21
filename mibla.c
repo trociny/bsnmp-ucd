@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
+ * $Id: mibla.c,v 1.2 2007/12/21 20:11:46 mikolaj Exp $
  *
  */
 
@@ -40,21 +40,21 @@
  */
 
 struct mibla {
-	uint32_t	index;
-	const char	*name;
-	char		load[UCDMAXLEN];
-	char		config[UCDMAXLEN];
-	uint32_t	loadInt;
-	char		loadFloat[UCDMAXLEN];
-	uint32_t	errorFlag;
-	char		errMessage[UCDMAXLEN];
+	int32_t		index;
+	const u_char	*name;
+	u_char		load[UCDMAXLEN];
+	u_char		*config;
+	int32_t		loadInt;
+	u_char		loadFloat[UCDMAXLEN];
+	int32_t		errorFlag;
+	u_char		*errMessage;
 };
 
 static struct mibla mibla[3];
 
 static uint64_t last_la_update;	/* ticks of the last la data update */
 
-static const char *la_names[] = {"Load-1", "Load-5", "Load-15"};
+static const u_char *la_names[] = {"Load-1", "Load-5", "Load-15"};
 
 int
 init_mibla_list() {
@@ -70,11 +70,11 @@ init_mibla_list() {
 		mibla[i].index = i + 1;
 		mibla[i].name = la_names[i];
 		snprintf (mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
-		snprintf (mibla[i].config, UCDMAXLEN-1, "%.2f", 0.0);
+		mibla[i].config = strdup(LACONFIG);
 		mibla[i].loadInt = (int) (100 * sys_la[i]);
 		snprintf (mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
 		mibla[i].errorFlag = 0;
-		snprintf (mibla[i].errMessage, UCDMAXLEN-1, "This feature has not been implemented yet");
+		mibla[i].errMessage = NULL;
 	}
 
 	last_la_update = get_ticks();
@@ -95,9 +95,12 @@ update_la_data(void)
 			syslog(LOG_WARNING, "%s: %m", __func__);
 	
 		for (i = 0; i < 3; i++) {
+			float crit;
 			snprintf (mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
 			mibla[i].loadInt = (int) (100 * sys_la[i]);
 			snprintf (mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
+			crit = strtof(mibla[i].config, NULL);
+			mibla[i].errorFlag = ((crit > 0) && (sys_la[i] >= crit));
 			i++;
 		}
 
@@ -129,6 +132,18 @@ op_laTable(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		case SNMP_OP_SET:
+			if (value->var.len - sub != 1)
+				return (SNMP_ERR_NOSUCHNAME);
+			if ((i = value->var.subs[sub] - 1) > 2)
+				return (SNMP_ERR_NOSUCHNAME);
+			switch(which) {
+				case LEAF_laConfig:
+					return  string_save(value, context, -1, &mibla[i].config);
+				case LEAF_laErrMessage:
+					return  string_save(value, context, -1, &mibla[i].errMessage);
+				default:
+					break;
+			}
 			return SNMP_ERR_NOT_WRITEABLE;
     
 		case SNMP_OP_ROLLBACK:
