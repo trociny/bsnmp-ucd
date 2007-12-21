@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibmem.c,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
+ * $Id: mibmem.c,v 1.2 2007/12/21 20:11:46 mikolaj Exp $
  *
  */
 
@@ -49,19 +49,19 @@
  */
 
 struct mibmemory {
-	uint32_t	index;		/* is always 0 */
-	char const	*errorName;	/* is always "swap" */
-	uint32_t	totalSwap;
-	uint32_t	availSwap;
-	uint32_t	totalReal;
-	uint32_t	availReal;
-	uint32_t	totalFree;
-	uint32_t	minimumSwap;
-	uint32_t	shared;
-	uint32_t	buffer;
-	uint32_t	cached;
-	uint32_t	swapError;
-	char		swapErrorMsg[UCDMAXLEN];
+	int32_t	index;			/* is always 0 */
+	u_char const	*errorName;	/* is always "swap" */
+	int32_t		totalSwap;
+	int32_t		availSwap;
+	int32_t		totalReal;
+	int32_t		availReal;
+	int32_t		totalFree;
+	int32_t		minimumSwap;
+	int32_t		shared;
+	int32_t		buffer;
+	int32_t		cached;
+	int32_t		swapError;
+	u_char		*swapErrorMsg;
 };
 
 static struct mibmemory mibmem;
@@ -71,11 +71,6 @@ static kvm_t *kd;	/* initialized in init_memory() */
 static int pagesize;	/* initialized in init_memory() */
 
 #define pagetok(size) ((size) * (pagesize >> 10))
-
-static uint32_t getminimumswap(void) {
-	/* FIXME It should be configurable */
-	return DEFAULTMINIMUMSWAP;
-}
 
 static int
 swapmode(int *rettotal, int *retavail)
@@ -109,15 +104,18 @@ static void get_mem_data (void) {
 
 	if (swapmode(&mibmem.totalSwap, &mibmem.availSwap) < 0)
 		syslog(LOG_WARNING, "%s: %m", __func__);
+
+	mibmem.swapError = (mibmem.availSwap <= mibmem.minimumSwap);
+
 	sysctlval("hw.physmem", &val);
-	mibmem.totalReal = (uint32_t) (val >> 10);
+	mibmem.totalReal = (int32_t) (val >> 10);
 	sysctlval("vm.stats.vm.v_free_count", &val);
 	mibmem.availReal = pagetok(val);
 	mibmem.totalFree = pagetok(total.t_free);
 	sysctlval("vm.stats.vm.v_cache_count", &val);
-	mibmem.cached = (uint32_t) pagetok(val);
+	mibmem.cached = (int32_t) pagetok(val);
 	sysctlval("vfs.bufspace", &val);
-	mibmem.buffer = (uint32_t) (val / 1024);
+	mibmem.buffer = (int32_t) (val / 1024);
 	mibmem.shared = pagetok(total.t_vmshr + total.t_avmshr + 
 				total.t_rmshr + total.t_armshr);
 
@@ -138,9 +136,8 @@ init_mibmemory() {
 
 	mibmem.index = 0;
 	mibmem.errorName = "swap";
-	mibmem.minimumSwap = getminimumswap();
-	mibmem.swapError = 0;
-	snprintf (mibmem.swapErrorMsg, UCDMAXLEN-1, "This feature has not been implemented yet");
+	mibmem.minimumSwap = DEFAULTMINIMUMSWAP;
+	mibmem.swapErrorMsg = NULL;
 
 	get_mem_data();
 
@@ -174,6 +171,15 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		case SNMP_OP_SET:
+			switch(which) {
+				case LEAF_memMinimumSwap:
+					mibmem.minimumSwap = value->v.integer;
+					return SNMP_ERR_NOERROR;
+				case LEAF_memSwapErrorMsg:
+					return  string_save(value, context, -1, &mibmem.swapErrorMsg);
+				default:
+					break;
+			}
 			return SNMP_ERR_NOT_WRITEABLE;
     
 		case SNMP_OP_GETNEXT:
@@ -226,7 +232,7 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 			value->v.integer = mibmem.cached;
 			break;
 		case LEAF_memSwapError:
-			value->v.integer = mibmem.index;
+			value->v.integer = mibmem.swapError;
 			break;
 		case LEAF_memSwapErrorMsg:
 			ret = string_get(value, mibmem.swapErrorMsg, -1);

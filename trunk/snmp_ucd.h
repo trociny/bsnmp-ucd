@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.2 2007/12/21 20:11:46 mikolaj Exp $
  *
  */
 
@@ -37,11 +37,11 @@
 #define UPDATE_INTERVAL	500	/* update interval in ticks */
 #define UCDMAXLEN	256	/* used as length of buffers */
 
-/*
- * Default swap warning limit (kb) 
- */
+/* Default swap warning limit (kb) */
 #define DEFAULTMINIMUMSWAP 16000
 
+/* Default laConfig value */
+#define LACONFIG "12.00"
 
 /* utils.c */
 void sysctlval(const char *, u_long*);
