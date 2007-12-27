@@ -1,0 +1,22 @@
+# $Id: snmpd.config.sample,v 1.1 2007/12/27 20:18:51 mikolaj Exp $
+#
+# Example configuration file for bsnmpd(1).
+#
+# Only part related to bsnmp-ucd is shown.
+
+# 
+# bsnmp-ucd (8)
+#
+begemotSnmpdModulePath."ucd" = "/usr/local/lib/snmp_ucd.so"
+%ucd
+memMinimumSwap = 1600
+memSwapErrorMsg = "No free swap!"
+
+laConfig.1 = "6.0"
+laConfig.2 = "5.0"
+laConfig.3 = "4.0"
+
+laErrMessage.1 = "1min load average is high!"
+laErrMessage.2 = "5min load average is high!"
+laErrMessage.3 = "15min load average is high!"
+

@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibversion.c,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
+ * $Id: mibversion.c,v 1.2 2007/12/27 20:18:51 mikolaj Exp $
  *
  */
 
@@ -40,11 +40,11 @@
 
 struct mibversion {
 	uint32_t	index;		/* always 0 */
-	char const	*tag;
-	char const	*date;
-	char		*cDate;
-	char const	*ident;
-	char const	*configureOptions;
+	const u_char 	*tag;
+	const u_char 	*date;
+	u_char		*cDate;
+	const u_char 	*ident;
+	const u_char 	*configureOptions;
 };
 
 static struct mibversion mibver;
@@ -52,22 +52,25 @@ static struct mibversion mibver;
 /* fill our version info */
 
 int
-init_mibversion() {
-
+init_mibversion()
+{
 	mibver.index = 0;
-	mibver.tag = "$Name: bsnmp-ucd-0-1-1 $";
-	mibver.date = "$Date: 2007/12/15 20:22:44 $";
-	mibver.ident = "$Id: mibversion.c,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $";
-	mibver.configureOptions = "";
+	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-1-2 $";
+	mibver.date = (const u_char*) "$Date: 2007/12/27 20:18:51 $";
+	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.2 2007/12/27 20:18:51 mikolaj Exp $";
+	mibver.configureOptions = (const u_char*) "";
 
 	return (0);
 }
 
 static void
-set_cDate(void){
+set_cDate(void)
+{
 	struct timeval	tv;
+	time_t sec;
 	gettimeofday(&tv, NULL);
-	mibver.cDate = ctime((time_t *) &tv.tv_sec);
+	sec = (time_t) tv.tv_sec;
+	mibver.cDate = (u_char*) ctime(&sec);
 }
 
 int

@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.2 2007/12/21 20:11:46 mikolaj Exp $
+ * $Id: mibla.c,v 1.3 2007/12/27 20:18:51 mikolaj Exp $
  *
  */
 
@@ -54,7 +54,7 @@ static struct mibla mibla[3];
 
 static uint64_t last_la_update;	/* ticks of the last la data update */
 
-static const u_char *la_names[] = {"Load-1", "Load-5", "Load-15"};
+static const u_char *la_names[] = {(const u_char *) "Load-1", (const u_char *) "Load-5", (const u_char *) "Load-15"};
 
 int
 init_mibla_list() {
@@ -69,10 +69,10 @@ init_mibla_list() {
 	for (i=0; i < 3; i++) {
 		mibla[i].index = i + 1;
 		mibla[i].name = la_names[i];
-		snprintf (mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
-		mibla[i].config = strdup(LACONFIG);
+		snprintf ((char *) mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
+		mibla[i].config = (u_char *) strdup(LACONFIG);
 		mibla[i].loadInt = (int) (100 * sys_la[i]);
-		snprintf (mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
+		snprintf ((char *) mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
 		mibla[i].errorFlag = 0;
 		mibla[i].errMessage = NULL;
 	}
@@ -96,10 +96,10 @@ update_la_data(void)
 	
 		for (i = 0; i < 3; i++) {
 			float crit;
-			snprintf (mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
+			snprintf ((char *) mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
 			mibla[i].loadInt = (int) (100 * sys_la[i]);
-			snprintf (mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
-			crit = strtof(mibla[i].config, NULL);
+			snprintf ((char *) mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
+			crit = strtof((char *) mibla[i].config, NULL);
 			mibla[i].errorFlag = ((crit > 0) && (sys_la[i] >= crit));
 			i++;
 		}

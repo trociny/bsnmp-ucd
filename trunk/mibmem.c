@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibmem.c,v 1.2 2007/12/21 20:11:46 mikolaj Exp $
+ * $Id: mibmem.c,v 1.3 2007/12/27 20:18:51 mikolaj Exp $
  *
  */
 
@@ -135,7 +135,7 @@ init_mibmemory() {
 		syslog(LOG_WARNING, "%s: %m", __func__);
 
 	mibmem.index = 0;
-	mibmem.errorName = "swap";
+	mibmem.errorName = (const u_char *) "swap";
 	mibmem.minimumSwap = DEFAULTMINIMUMSWAP;
 	mibmem.swapErrorMsg = NULL;
 
