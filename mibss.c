@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibss.c,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
+ * $Id: mibss.c,v 1.2 2007/12/27 20:18:51 mikolaj Exp $
  *
  */
 
@@ -52,7 +52,7 @@
 
 struct mibss {
 	int32_t		index;		/* is always 1 */
-	char const	*errorName;	/* is always "systemStats" */
+	const u_char 	*errorName;	/* is always "systemStats" */
 	int32_t		swapIn;
 	int32_t		swapOut;
 	int32_t		sysInterrupts;
@@ -214,7 +214,7 @@ init_mibss() {
 	pagesize = getpagesize();
 
 	mibss.index = 1;
-	mibss.errorName = "systemStats";
+	mibss.errorName = (const u_char *) "systemStats";
 	
 	get_ss_data(NULL);
 
