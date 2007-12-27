@@ -1,0 +1,39 @@
+bsnmp-ucd (0.1.2)
+
+  * cleanup for no warning compilation with gcc-4
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2007/12/27
+
+bsnmp-ucd (0.1.1)
+
+  * now config MIBs such as memMinimumSwap can be set in snmpd.config
+
+  * some bug fixes
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2007/12/21
+
+bsnmp-ucd (0.1)
+
+  * rename project to bsnmp-ucd
+
+  * cleanup and implementations of UCD-SNMP-MIB::version
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2007/12/15
+
+bsnmp-la (0.3)
+
+  * UCD-SNMP-MIB::systemStats implemented
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2007/12/13
+
+bsnmp-la (0.2)
+
+  * limited version of UCD-SNMP-MIB::memory implemented
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2007/12/09
+
+bsnmp-la (0.1)
+
+  * limited version of UCD-SNMP-MIB::laTable implemented
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2007/12/06
