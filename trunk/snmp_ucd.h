@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.2 2007/12/21 20:11:46 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.3 2007/12/28 20:10:30 mikolaj Exp $
  *
  */
 
@@ -52,9 +52,12 @@ extern int init_mibla_list (void);
 /* mibmem.c */
 extern int init_mibmemory (void);
 
-/* minss.c */
+/* mibss.c */
 extern int init_mibss (void);
 extern void get_ss_data (void*);
+
+/* mibext.c */
+extern void mibext_free(void);
 
 /* mibversion.c */
 extern int init_mibversion (void);
