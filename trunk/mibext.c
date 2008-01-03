@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: $
+ * $Id: mibext.c,v 1.2 2008/01/03 20:45:07 mikolaj Exp $
  *
  */
 
@@ -34,6 +34,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "snmp_ucd.h"
 
@@ -50,6 +54,7 @@ struct mibext {
 	u_char			output[UCDMAXLEN];
 	int32_t			errFix;
 	u_char			*errFixCmd;
+	int 			_fd[2];
 };
 
 TAILQ_HEAD(mibext_list, mibext);
@@ -78,37 +83,75 @@ next_mibext(const struct mibext *extp)
 	return (TAILQ_NEXT(extp, link));
 }
 #endif
-
-static void
-run_extCommand(struct mibext *extp)
-{
-	FILE *fp;
-	char buf[UCDMAXLEN];
 	
-	if (!extp->command)
-		return;
-
-	if ((fp = popen((char*) extp->command, "r")) == NULL) {
-		syslog(LOG_WARNING, "%s: %m", __func__);
-		extp->result = errno;
-		return;
-	}
-
-	/* read first line to output buffer*/
-	fgets((char*) extp->output, UCDMAXLEN-1, fp);
-
-	/* just skip other lines */
-	while (fgets(buf, UCDMAXLEN-1, fp) != NULL);
-	
-	extp->result = pclose(fp);
-}
-
 static void
 run_extCommands(void)
 {
 	struct mibext *extp;
-	TAILQ_FOREACH(extp, &mibext_list, link)
-		run_extCommand(extp);
+	
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+		pid_t pid;
+		
+		if (!extp->command)
+			continue;
+	
+		/* create a pipe */
+		pipe(extp->_fd);
+
+		/* make the pipe non-blocking */
+		fcntl(extp->_fd[0],F_SETFL,O_NONBLOCK);
+		fcntl(extp->_fd[1],F_SETFL,O_NONBLOCK);
+
+		if ((pid = fork()) < 0) {
+			syslog(LOG_WARNING, "%s: %m", __func__);
+			close(extp->_fd[0]);
+			close(extp->_fd[1]);
+			continue;
+		}
+
+		/* execute the command in the child process */
+	        if(pid==0){
+			char buf[UCDMAXLEN];
+			FILE *fp;
+
+			/* close pipe for reading */
+			close(extp->_fd[0]);
+
+			/* become process group leader */
+			setpgid(0,0);
+
+			/* run the command */
+			if ((fp = popen((char*) extp->command, "r")) == NULL) {
+				syslog(LOG_WARNING, "%s: %m", __func__);
+				exit (127);
+			}
+
+			/* read first line to output buffer*/
+			fgets(buf, UCDMAXLEN-1, fp);
+			
+			write(extp->_fd[1],buf,strlen(buf)+1);
+
+			/* just skip other lines */
+			while (fgets(buf, UCDMAXLEN-1, fp) != NULL);
+	
+			close(extp->_fd[1]);
+			_exit (pclose(fp));
+		} else { /* parent */
+
+			int status;
+
+			/* close pipe for writing */
+			close(extp->_fd[1]);
+
+			/* wait for child to exit */
+			waitpid(pid,&status,0);
+
+			/* get the exit code returned from the program */
+			extp->result=WEXITSTATUS(status);
+
+			read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1);
+		}
+	}
 }
 
 int
