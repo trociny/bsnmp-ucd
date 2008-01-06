@@ -1,4 +1,4 @@
-# $Id: snmpd.config.sample,v 1.1 2007/12/27 20:18:51 mikolaj Exp $
+# $Id: snmpd.config.sample,v 1.2 2008/01/06 09:06:28 mikolaj Exp $
 #
 # Example configuration file for bsnmpd(1).
 #
@@ -19,4 +19,12 @@ laConfig.3 = "4.0"
 laErrMessage.1 = "1min load average is high!"
 laErrMessage.2 = "5min load average is high!"
 laErrMessage.3 = "15min load average is high!"
+
+# Our own commands to get statistics (extTable)
+
+extNames.0 = "uname"
+extCommand.0 = "/usr/bin/uname -a"
+
+extNames.1 = "uptime"
+extCommand.1 = "/usr/bin/uptime"
 

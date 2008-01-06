@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.3 2007/12/28 20:10:30 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.4 2008/01/06 09:06:28 mikolaj Exp $
  *
  */
 
@@ -34,14 +34,16 @@
 #include "ucd_tree.h"
 #include "ucd_oid.h"
 
-#define UPDATE_INTERVAL	500	/* update interval in ticks */
-#define UCDMAXLEN	256	/* used as length of buffers */
+#define UPDATE_INTERVAL		500	/* update interval in ticks */
+#define EXT_UPDATE_INTERVAL	1000	/* ext data update interval in ticks */
+
+#define UCDMAXLEN		256	/* used as length of buffers */
 
 /* Default swap warning limit (kb) */
-#define DEFAULTMINIMUMSWAP 16000
+#define DEFAULTMINIMUMSWAP	16000
 
 /* Default laConfig value */
-#define LACONFIG "12.00"
+#define LACONFIG		"12.00"
 
 /* utils.c */
 void sysctlval(const char *, u_long*);
@@ -57,7 +59,9 @@ extern int init_mibss (void);
 extern void get_ss_data (void*);
 
 /* mibext.c */
-extern void mibext_free(void);
+extern int init_mibext (void);
+extern void mibext_fini (void);
+extern void run_extCommands (void*);
 
 /* mibversion.c */
 extern int init_mibversion (void);
