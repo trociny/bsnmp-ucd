@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.2 2008/01/03 20:45:07 mikolaj Exp $
+ * $Id: mibext.c,v 1.3 2008/01/06 09:06:28 mikolaj Exp $
  *
  */
 
@@ -38,6 +38,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/select.h>
+#include <signal.h>
 
 #include "snmp_ucd.h"
 
@@ -55,6 +57,8 @@ struct mibext {
 	int32_t			errFix;
 	u_char			*errFixCmd;
 	int 			_fd[2];
+	pid_t			_pid;
+	uint64_t		_ticks;
 };
 
 TAILQ_HEAD(mibext_list, mibext);
@@ -62,7 +66,8 @@ TAILQ_HEAD(mibext_list, mibext);
 static struct mibext_list mibext_list = TAILQ_HEAD_INITIALIZER(mibext_list);
 
 static struct mibext *
-find_ext (int32_t idx) {
+find_ext (int32_t idx)
+{
 	struct mibext *extp;
 	TAILQ_FOREACH(extp, &mibext_list, link)
 		if (extp->index == idx)
@@ -83,20 +88,35 @@ next_mibext(const struct mibext *extp)
 	return (TAILQ_NEXT(extp, link));
 }
 #endif
-	
-static void
-run_extCommands(void)
+
+void
+run_extCommands(void* arg __unused)
 {
-	struct mibext *extp;
+	struct mibext	*extp;
+
+	uint64_t	current;
+	
+	current = get_ticks();
+
+	/* run commads which are ready for running */
 	
 	TAILQ_FOREACH(extp, &mibext_list, link) {
-		pid_t pid;
+		pid_t	pid;
 		
 		if (!extp->command)
-			continue;
-	
+			continue; /* no command specified */
+
+		if (extp->_pid)
+			continue; /* command has already been running */
+
+		if ((current - extp->_ticks) < EXT_UPDATE_INTERVAL)
+			continue; /* run command only if EXT_UPDATE_INTERVAL passes after last run */
+		
 		/* create a pipe */
-		pipe(extp->_fd);
+		if (pipe(extp->_fd) != 0) {
+			syslog(LOG_WARNING, "%s: %m", __func__);
+			continue;
+		}
 
 		/* make the pipe non-blocking */
 		fcntl(extp->_fd[0],F_SETFL,O_NONBLOCK);
@@ -110,46 +130,87 @@ run_extCommands(void)
 		}
 
 		/* execute the command in the child process */
-	        if(pid==0){
-			char buf[UCDMAXLEN];
-			FILE *fp;
+		if (pid==0) {
+			
+			char	buf[UCDMAXLEN], null[UCDMAXLEN];
+			int	fd, len, status;
+			FILE	*fp;
 
-			/* close pipe for reading */
-			close(extp->_fd[0]);
+			/* close all descriptors except stdio and pipe for reading */
+			for (fd = 3; fd < extp->_fd[1]; fd++)
+				close(fd);
 
 			/* become process group leader */
 			setpgid(0,0);
 
+			/*syslog(LOG_WARNING, "run command `%s'", extp->command);*/
+			
 			/* run the command */
 			if ((fp = popen((char*) extp->command, "r")) == NULL) {
-				syslog(LOG_WARNING, "%s: %m", __func__);
-				exit (127);
+				syslog(LOG_ERR, "popen failed: %m");
+				/* send empty line to parent and exit*/
+				write(extp->_fd[1], "", 1);
+				_exit(127);
 			}
 
 			/* read first line to output buffer*/
-			fgets(buf, UCDMAXLEN-1, fp);
-			
-			write(extp->_fd[1],buf,strlen(buf)+1);
+			if (fgets(buf, UCDMAXLEN-1, fp) != NULL) { /* we have some output */
+				
+				/* chop 'end of line' */
+				len = strlen(buf) - 2;
+				if (len < 0) len = 0;
+				extp->output[len] = '\0';
 
-			/* just skip other lines */
-			while (fgets(buf, UCDMAXLEN-1, fp) != NULL);
-	
+				/* just skip other lines */
+				while (fgets(null, UCDMAXLEN-1, fp) != NULL);
+				
+			} else {
+				extp->output[0] = '\0';
+				len = 0;
+			}
+			
+			/* send output line to parent*/
+			write(extp->_fd[1], buf, len+1);
+
 			close(extp->_fd[1]);
-			_exit (pclose(fp));
+			status = pclose(fp);
+			_exit(WEXITSTATUS(status));
+			
 		} else { /* parent */
 
-			int status;
+			extp->_pid = pid;
 
 			/* close pipe for writing */
 			close(extp->_fd[1]);
 
+		}
+	}
+
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+
+		int n, status;
+			
+		if(!extp->_pid)
+			continue;
+
+		n = read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1);
+		
+		/*syslog(LOG_WARNING, "read %d bytes from command `%s'", n, extp->names);*/
+
+		if (n > 0) { /* we have got the data, so the command has finished */
+			
+			close(extp->_fd[0]);
+			
 			/* wait for child to exit */
-			waitpid(pid,&status,0);
+			waitpid(extp->_pid, &status, 0);
+			
+			extp->_pid = 0;
 
 			/* get the exit code returned from the program */
-			extp->result=WEXITSTATUS(status);
-
-			read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1);
+			extp->result = WEXITSTATUS(status);
+			
+			/* save time of program finishing */
+			extp->_ticks = get_ticks();
 		}
 	}
 }
@@ -211,8 +272,6 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 	}
 
-	run_extCommands();
-  	
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
@@ -253,7 +312,21 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 	return (ret);
 };
 
-void
+/* kill all running commands */
+static void
+mibext_killall (void)
+{
+	struct mibext *extp;
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+		if (extp->_pid) {
+			syslog(LOG_WARNING, "killing command `%s'", extp->command);
+			kill(extp->_pid, SIGTERM);
+		}
+	}
+}
+
+/* free mibext list */
+static void
 mibext_free (void)
 {
 	struct mibext *extp = NULL;
@@ -266,3 +339,19 @@ mibext_free (void)
 	}
 }
 
+void
+mibext_fini (void)
+{
+	mibext_killall();
+	mibext_free();
+}
+
+int
+init_mibext (void)
+{
+	int	res;
+	if ((res = atexit(mibext_killall)) == -1) {
+		syslog(LOG_ERR, "atexit failed: %m");
+	}
+	return res;
+}
