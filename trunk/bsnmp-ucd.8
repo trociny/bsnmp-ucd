@@ -23,7 +23,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\" $Id: bsnmp-ucd.8,v 1.3 2008/01/07 17:55:32 mikolaj Exp $
+.\" $Id: bsnmp-ucd.8,v 1.4 2008/01/07 21:40:37 mikolaj Exp $
 .\"
 .Dd December, 2007
 .Dt bsnmp-ucd 8
@@ -60,7 +60,7 @@ UCD-SNMP-MIB::ucdavis
 .Pp
 With
 .Nm
-you can extend bsnmpd agent functionality specifying arbitrary
+you can also extend bsnmpd agent functionality specifying arbitrary
 commands in UCD-SNMP-MIB::extTable. To add new command you should add
 following lines in snmpd.conf in
 .Nm
@@ -77,11 +77,30 @@ extNames.0 = "lastpid"
 extCommand.0 = "/sbin/sysctl kern.lastpid"
 .Ed
 .Pp
-Note: Index order is important. Commands should be indexed begining
+Note: Index order is important. Commands should be indexed beginning
 from 0 and without gaps.
-.Pp When program finished, the exit status is available via extResult
-mib and first line of output is placed in extOutpyt mib.  The next
-time program will be run only after 30 seconds.
+.Pp
+When program finished, the exit status is available via extResult
+mib and the first line of output is placed in extOutupt mib. The next
+time the program will be run only after 30 seconds.
+.Pp
+It is possible to specify command that will be run to fix
+problem when extension command returns nonzero status. For this,
+together with previous two mibs for extension command, the following
+mibs should be set:
+.Bd -literal -offset indent
+extErrFix.<INDEX> = 1
+extErrFixCmd.<INDEX> = <fix command>
+.Ed
+.Pp
+For example, to monitor apache and restart process when it down,
+you can add to configuration file:
+.Bd -literal -offset indent
+extNames.1 = "apache"
+extCommand.1 = "/usr/local/etc/rc.d/apache status"
+extErrFix.1 = 1
+extErrFixCmd.1 = "/usr/local/etc/rc.d/apache restart"
+.Ed
 .Sh SEE ALSO
 .Xr bsnmpd 1 
 .Sh AUTHOR
