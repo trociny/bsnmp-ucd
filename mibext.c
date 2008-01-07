@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.4 2008/01/07 17:55:32 mikolaj Exp $
+ * $Id: mibext.c,v 1.5 2008/01/07 21:40:37 mikolaj Exp $
  *
  */
 
@@ -59,6 +59,8 @@ struct mibext {
 	int 			_fd[2];
 	pid_t			_pid;
 	uint64_t		_ticks;
+	pid_t			_fix_pid;
+	uint64_t		_fix_ticks;
 };
 
 TAILQ_HEAD(mibext_list, mibext);
@@ -123,7 +125,7 @@ run_extCommands(void* arg __unused)
 		fcntl(extp->_fd[1],F_SETFL,O_NONBLOCK);
 
 		if ((pid = fork()) < 0) {
-			syslog(LOG_WARNING, "%s: %m", __func__);
+			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
 			close(extp->_fd[0]);
 			close(extp->_fd[1]);
 			continue;
@@ -215,6 +217,80 @@ run_extCommands(void* arg __unused)
 	}
 }
 
+void
+run_extFixCmds(void* arg __unused)
+{
+	struct mibext	*extp;
+
+	uint64_t	current;
+	
+	current = get_ticks();
+
+	/* run commads if needed */
+	
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+		pid_t	pid;
+		
+		if (!extp->errFix)
+			continue;	/* no fix */
+
+		if (!extp->errFixCmd)
+			continue;	/* no command specified */
+
+		if (extp->result == 0)
+			continue;	/* checked command exited normaly, no need for fix*/
+
+		if (extp->_fix_pid)
+			continue;	/* fix command has already been running */
+
+		if ((current - extp->_fix_ticks) < EXT_UPDATE_INTERVAL)
+			continue; /* run command only if EXT_UPDATE_INTERVAL passes after last run */
+		
+		if ((pid = fork()) < 0) {
+			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+			continue;
+		}
+
+		/* execute the command in the child process */
+		if (pid==0) {
+
+			int	fd, status;
+			
+			/* close all descriptors except stdio and pipe for reading */
+			for (fd = 3; fd < extp->_fd[1]; fd++)
+				close(fd);
+
+			/*syslog(LOG_WARNING, "run command `%s'", extp->command);*/
+			
+			/* run the command */
+			if ((status = system((char*) extp->errFixCmd)) != 0)
+				syslog(LOG_ERR, "command `%s' has retuned status %d", extp->errFixCmd, WEXITSTATUS(status));
+			_exit(WEXITSTATUS(status));
+
+		} else { /* parent */
+
+			extp->_fix_pid = pid;
+
+		}
+	}
+
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+
+		int status;
+			
+		if(!extp->_fix_pid)
+			continue;
+
+		/* check if has child exited */
+		waitpid(extp->_pid, &status, WNOHANG);
+			
+		extp->_fix_pid = 0;
+
+		/* save time of fix program finishing */
+		extp->_fix_ticks = get_ticks();
+	}
+}
+
 int
 op_extTable(struct snmp_context * context __unused, struct snmp_value * value, 
 	u_int sub, u_int iidx __unused, enum snmp_op op)
@@ -257,6 +333,10 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 							kill(extp->_pid, SIGTERM);
 							extp->_pid = 0;
 						}
+						if (extp->_fix_pid) {
+							kill(extp->_fix_pid, SIGTERM);
+							extp->_fix_pid = 0;
+						}
 					}
 					return  string_save(value, context, -1, &extp->names);
 
@@ -264,6 +344,17 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 					if ((extp = find_ext(value->var.subs[sub])) == NULL)
 						return (SNMP_ERR_NOT_WRITEABLE);
 					return  string_save(value, context, -1, &extp->command);
+
+				case LEAF_extErrFix:
+					if ((extp = find_ext(value->var.subs[sub])) == NULL)
+						return (SNMP_ERR_NOT_WRITEABLE);
+					extp->errFix = value->v.integer;
+					return SNMP_ERR_NOERROR;
+
+				case LEAF_extErrFixCmd:
+					if ((extp = find_ext(value->var.subs[sub])) == NULL)
+						return (SNMP_ERR_NOT_WRITEABLE);
+					return  string_save(value, context, -1, &extp->errFixCmd);
 
 				default:
 					break;
@@ -328,6 +419,10 @@ mibext_killall (void)
 		if (extp->_pid) {
 			kill(extp->_pid, SIGTERM);
 			extp->_pid = 0;
+		}
+		if (extp->_fix_pid) {
+			kill(extp->_fix_pid, SIGTERM);
+			extp->_fix_pid = 0;
 		}
 	}
 }

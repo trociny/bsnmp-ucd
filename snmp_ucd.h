@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.4 2008/01/06 09:06:28 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.5 2008/01/07 21:40:37 mikolaj Exp $
  *
  */
 
@@ -62,6 +62,7 @@ extern void get_ss_data (void*);
 extern int init_mibext (void);
 extern void mibext_fini (void);
 extern void run_extCommands (void*);
+extern void run_extFixCmds (void*);
 
 /* mibversion.c */
 extern int init_mibversion (void);
