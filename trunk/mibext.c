@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.3 2008/01/06 09:06:28 mikolaj Exp $
+ * $Id: mibext.c,v 1.4 2008/01/07 17:55:32 mikolaj Exp $
  *
  */
 
@@ -250,6 +250,13 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 						memset(extp, 0, sizeof(*extp));
 						extp->index = value->var.subs[sub];
 						INSERT_OBJECT_INT(extp, &mibext_list);
+					} else {
+						/* we have already had some command defined  under this index.*/
+						/* check if the command is run to kill the process */
+						if (extp->_pid) {
+							kill(extp->_pid, SIGTERM);
+							extp->_pid = 0;
+						}
 					}
 					return  string_save(value, context, -1, &extp->names);
 
@@ -319,8 +326,8 @@ mibext_killall (void)
 	struct mibext *extp;
 	TAILQ_FOREACH(extp, &mibext_list, link) {
 		if (extp->_pid) {
-			syslog(LOG_WARNING, "killing command `%s'", extp->command);
 			kill(extp->_pid, SIGTERM);
+			extp->_pid = 0;
 		}
 	}
 }
