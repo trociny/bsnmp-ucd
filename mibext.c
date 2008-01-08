@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.5 2008/01/07 21:40:37 mikolaj Exp $
+ * $Id: mibext.c,v 1.6 2008/01/08 21:59:32 mikolaj Exp $
  *
  */
 
@@ -180,6 +180,7 @@ run_extCommands(void* arg __unused)
 			
 		} else { /* parent */
 
+			/* syslog(LOG_WARNING, "got pid %d when run command `%s'", pid, extp->command); */
 			extp->_pid = pid;
 
 			/* close pipe for writing */
@@ -190,21 +191,18 @@ run_extCommands(void* arg __unused)
 
 	TAILQ_FOREACH(extp, &mibext_list, link) {
 
-		int n, status;
+		int status;
 			
 		if(!extp->_pid)
 			continue;
 
-		n = read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1);
-		
-		/*syslog(LOG_WARNING, "read %d bytes from command `%s'", n, extp->names);*/
+		/* check if has child exited */
+		if (waitpid(extp->_pid, &status, WNOHANG) > 0) {
 
-		if (n > 0) { /* we have got the data, so the command has finished */
-			
+			if(read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1) <= 0)
+				syslog(LOG_WARNING, "Can't read data from child command `%s'", extp->names);
+
 			close(extp->_fd[0]);
-			
-			/* wait for child to exit */
-			waitpid(extp->_pid, &status, 0);
 			
 			extp->_pid = 0;
 
@@ -260,7 +258,7 @@ run_extFixCmds(void* arg __unused)
 			for (fd = 3; fd < extp->_fd[1]; fd++)
 				close(fd);
 
-			/*syslog(LOG_WARNING, "run command `%s'", extp->command);*/
+			/* syslog(LOG_WARNING, "run command `%s'", extp->errFixCmd); */
 			
 			/* run the command */
 			if ((status = system((char*) extp->errFixCmd)) != 0)
@@ -269,6 +267,7 @@ run_extFixCmds(void* arg __unused)
 
 		} else { /* parent */
 
+			/* syslog(LOG_WARNING, "got pid %d when run command `%s'", pid, extp->errFixCmd); */
 			extp->_fix_pid = pid;
 
 		}
@@ -282,12 +281,13 @@ run_extFixCmds(void* arg __unused)
 			continue;
 
 		/* check if has child exited */
-		waitpid(extp->_pid, &status, WNOHANG);
+		if (waitpid(extp->_pid, &status, WNOHANG) > 0) {
 			
-		extp->_fix_pid = 0;
+			extp->_fix_pid = 0;
 
-		/* save time of fix program finishing */
-		extp->_fix_ticks = get_ticks();
+			/* save time of fix program finishing */
+			extp->_fix_ticks = get_ticks();
+		}
 	}
 }
 
