@@ -35,17 +35,17 @@
           (100 memSwapError INTEGER32 op_memory GET)
           (101 memSwapErrorMsg OCTETSTRING op_memory GET)
         )
-        (8 extTable
-          (1 extEntry : INTEGER op_extTable
-            (1 extIndex INTEGER GET)
-            (2 extNames OCTETSTRING GET)
-            (3 extCommand OCTETSTRING GET)
-            (100 extResult INTEGER32 GET)
-            (101 extOutput OCTETSTRING GET)
-            (102 extErrFix INTEGER32 GET SET)
-            (103 extErrFixCmd OCTETSTRING GET)
-          )
-        )
+#        (8 extTable
+#          (1 extEntry : INTEGER op_extTable
+#            (1 extIndex INTEGER GET)
+#            (2 extNames OCTETSTRING GET)
+#            (3 extCommand OCTETSTRING GET)
+#            (100 extResult INTEGER32 GET)
+#            (101 extOutput OCTETSTRING GET)
+#            (102 extErrFix INTEGER32 GET SET)
+#            (103 extErrFixCmd OCTETSTRING GET)
+#          )
+#        )
 #        (9 dskTable
 #          (1 dskEntry : INTEGER op_dskTable
 #            (1 dskIndex INTEGER GET)

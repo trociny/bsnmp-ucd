@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.4 2008/01/08 19:05:51 mikolaj Exp $
+ * $Id: mibla.c,v 1.3.2.1 2008/01/08 19:25:45 mikolaj Exp $
  *
  */
 
