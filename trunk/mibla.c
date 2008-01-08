@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.3 2007/12/27 20:18:51 mikolaj Exp $
+ * $Id: mibla.c,v 1.4 2008/01/08 19:05:51 mikolaj Exp $
  *
  */
 
@@ -101,7 +101,6 @@ update_la_data(void)
 			snprintf ((char *) mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
 			crit = strtof((char *) mibla[i].config, NULL);
 			mibla[i].errorFlag = ((crit > 0) && (sys_la[i] >= crit));
-			i++;
 		}
 
 		last_la_update = get_ticks();
