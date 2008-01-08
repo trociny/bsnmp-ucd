@@ -23,7 +23,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\" $Id: bsnmp-ucd.8,v 1.4 2008/01/07 21:40:37 mikolaj Exp $
+.\" $Id: bsnmp-ucd.8,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
 .\"
 .Dd December, 2007
 .Dt bsnmp-ucd 8
@@ -38,15 +38,6 @@ is a module for
 which allows to get memory, load average, cpu usage and other system
 statistics. It implements parts of UCD-SNMP-MIB for this.
 .Pp
-.Sh OPTIONS
-To activate the
-.Nm
-module add this string to
-.Pa /etc/snmpd.config:
-.Bd -literal -offset indent
-begemotSnmpdModulePath."ucd" = "/usr/local/lib/snmp_ucd.so"
-.Ed
-.Pp
 .Sh MIBS
 The counters will be available under the following MIB:
 .Bd -literal -offset indent
@@ -58,54 +49,16 @@ Or if the appropriate MIB file has been installed:
 UCD-SNMP-MIB::ucdavis
 .Ed
 .Pp
-With
+.Sh OPTIONS
+To activate the 
 .Nm
-you can also extend bsnmpd agent functionality specifying arbitrary
-commands in UCD-SNMP-MIB::extTable. To add new command you should add
-following lines in snmpd.conf in
-.Nm
-module section:
+module add this string to 
+.Pa /etc/snmpd.config:
 .Bd -literal -offset indent
-extNames.<INDEX> = <name>
-extCommand.<INDEX> = <commandline>
+begemotSnmpdModulePath."ucd" = "/usr/local/lib/snmp_ucd.so"
 .Ed
 .Pp
-For example, to collect lastpid statistics under mib
-UCD-SNMP-MIB::extOutput.0 you can specify:
-.Bd -literal -offset indent
-extNames.0 = "lastpid"
-extCommand.0 = "/sbin/sysctl kern.lastpid"
-.Ed
-.Pp
-Note: Index order is important. Commands should be indexed beginning
-from 0 and without gaps.
-.Pp
-When program finished, the exit status is available via extResult
-mib and the first line of output is placed in extOutupt mib. The next
-time the program will be run only after 30 seconds.
-.Pp
-It is possible to specify command that will be run to fix
-problem when extension command returns nonzero status. For this,
-together with previous two mibs for extension command, the following
-mibs should be set:
-.Bd -literal -offset indent
-extErrFix.<INDEX> = 1
-extErrFixCmd.<INDEX> = <fix command>
-.Ed
-.Pp
-For example, to monitor apache and restart process when it down,
-you can add to configuration file:
-.Bd -literal -offset indent
-extNames.1 = "apache"
-extCommand.1 = "/usr/local/etc/rc.d/apache status"
-extErrFix.1 = 1
-extErrFixCmd.1 = "/usr/local/etc/rc.d/apache restart"
-.Ed
 .Sh SEE ALSO
 .Xr bsnmpd 1 
 .Sh AUTHOR
 .An Mikolaj Golub
-.Sh BUGS
-When stopping bsnpd daemon, if extension command (defined in extTable)
-is still running, it will not be terminated automatically. You have to
-kill it manualy or allow to finish itself.

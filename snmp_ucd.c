@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.c,v 1.5 2008/01/07 21:40:37 mikolaj Exp $
+ * $Id: snmp_ucd.c,v 1.3 2007/12/20 19:34:13 mikolaj Exp $
  *
  */
 
@@ -39,7 +39,7 @@ static const struct asn_oid oid_ucdavis = OIDX_ucdavis;
 static u_int ucdavis_index = 0;
 
 /* timer id */
-static void	*timer_ss, *timer_ext;
+static void	*timer_ss;
 
 /* the initialisation function */
 static int
@@ -56,19 +56,8 @@ ucd_init (struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	if (init_mibss() != 0)
 		return (-1);
 
-	if (init_mibext() != 0)
-		return (-1);
-	
-	get_ss_data(NULL);
 	timer_ss = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
 				get_ss_data, NULL, mod);
-
-	timer_ext = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				run_extCommands, NULL, mod);
-
-	timer_ext = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				run_extFixCmds, NULL, mod);
-
 
 	if (init_mibversion() != 0)
 		return (-1);
@@ -88,8 +77,6 @@ static int
 ucd_fini (void)
 {
 	timer_stop(timer_ss);
-	timer_stop(timer_ext);
-	mibext_fini();
 	or_unregister(ucdavis_index);
 	return (0);
 }

@@ -1,16 +1,15 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.3 2008/01/06 09:06:28 mikolaj Exp $
+# $Id: Makefile,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
 
-MOD=	ucd
-SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
-	mibla.c mibmem.c mibss.c mibext.c mibversion.c
-INCS=	snmp_${MOD}.h
-DEFS=	${MOD}_tree.def
-MAN8=	bsnmp-${MOD}.8
+MOD=  ucd
+SRCS= ${MOD}_tree.c snmp_${MOD}.c utils.c mibla.c mibmem.c mibss.c mibversion.c
+INCS= snmp_${MOD}.h
+DEFS= ${MOD}_tree.def
+MAN8= bsnmp-${MOD}.8
 
-XSYM=	ucdavis
+XSYM= ucdavis
 
 WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wstrict-prototypes -Wmissing-prototypes \
@@ -32,7 +31,6 @@ LOCALBASE ?=	/usr/local
 
 LIBDIR =	${LOCALBASE}/lib
 MANDIR = 	${LOCALBASE}/man
-EXAMPLEDIR =	${LOCALBASE}/share/examples
 
 CLEANFILES +=	*.la *.lo *.o .libs
 CLEANFILES +=	${MOD}_oid.h ${MOD}_tree.c ${MOD}_tree.h
@@ -63,8 +61,6 @@ install: $(LIB)
 	for f in $(MAN8) ; do \
 		$(INSTALL_DATA) $${f} $(MANDIR)/man8/$${f} ; \
 	done
-	@$(INSTALL_DIR) $(EXAMPLEDIR)/bsnmp-${MOD}
-	$(INSTALL_DATA) snmpd.config.sample $(EXAMPLEDIR)/bsnmp-${MOD}/snmpd.config.sample
 
 clean:
 	rm -Rf ${CLEANFILES}

@@ -25,7 +25,5 @@ Or if the appropriate MIB file has been installed:
 
 	UCD-SNMP-MIB::ucdavis
 
-See bsnmp-ucd(8) for more info.
-
 --
 Mikolaj Golub
