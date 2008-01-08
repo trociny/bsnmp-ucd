@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.5 2008/01/07 21:40:37 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.6 2008/01/08 21:59:32 mikolaj Exp $
  *
  */
 
@@ -35,7 +35,8 @@
 #include "ucd_oid.h"
 
 #define UPDATE_INTERVAL		500	/* update interval in ticks */
-#define EXT_UPDATE_INTERVAL	1000	/* ext data update interval in ticks */
+#define EXT_CHECK_INTERVAL	100	/* if command exited check interval in ticks */
+#define EXT_UPDATE_INTERVAL	1000	/* ext commands rerun interval in ticks */
 
 #define UCDMAXLEN		256	/* used as length of buffers */
 
