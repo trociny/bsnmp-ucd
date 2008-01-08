@@ -1,3 +1,9 @@
+bsnmp-ucd (0.1.3)
+
+  * fix bug in la data update. Thanks to Dennis Glatting
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2008/01/08
+
 bsnmp-ucd (0.1.2)
 
   * cleanup for no warning compilation with gcc-4
