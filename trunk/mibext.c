@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.6 2008/01/08 21:59:32 mikolaj Exp $
+ * $Id: mibext.c,v 1.7 2008/01/13 11:04:37 mikolaj Exp $
  *
  */
 
@@ -91,6 +91,65 @@ next_mibext(const struct mibext *extp)
 }
 #endif
 
+static void
+get_input_from_chlds(int sig __unused)
+{
+	struct mibext	*extp;
+
+	syslog(LOG_WARNING, "IN HANDLER!!!");
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+
+		int status, pid;
+			
+		if (extp->_pid) {
+
+			/* check if this command exited */
+			for (;;) {
+				pid = waitpid(extp->_pid, &status, WNOHANG);
+				if (pid == -1 && errno == EINTR)
+					continue;
+				if (pid <= 0)
+					break;
+			
+				if(read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1) <= 0)
+					syslog(LOG_WARNING, "Can't read data from child command `%s'", extp->names);
+			
+				close(extp->_fd[0]);
+			
+				extp->_pid = 0;
+			
+				/* get the exit code returned from the program */
+				extp->result = WEXITSTATUS(status);
+			
+				/* save time of program finishing */
+				extp->_ticks = get_ticks();
+
+				break;
+			}
+		}
+			
+		if (extp->_fix_pid) {
+
+			/* check if this fix command exited */
+
+			for (;;) {
+				pid = waitpid(extp->_fix_pid, &status, WNOHANG);
+				if (pid == -1 && errno == EINTR)
+					continue;
+				if (pid <= 0)
+					break;
+			
+				extp->_fix_pid = 0;
+
+				/* save time of fix program finishing */
+				extp->_fix_ticks = get_ticks();
+
+				break;
+			}
+		}
+	}
+}
+
 void
 run_extCommands(void* arg __unused)
 {
@@ -145,6 +204,7 @@ run_extCommands(void* arg __unused)
 			/* become process group leader */
 			setpgid(0,0);
 
+
 			/*syslog(LOG_WARNING, "run command `%s'", extp->command);*/
 			
 			/* run the command */
@@ -186,31 +246,6 @@ run_extCommands(void* arg __unused)
 			/* close pipe for writing */
 			close(extp->_fd[1]);
 
-		}
-	}
-
-	TAILQ_FOREACH(extp, &mibext_list, link) {
-
-		int status;
-			
-		if(!extp->_pid)
-			continue;
-
-		/* check if has child exited */
-		if (waitpid(extp->_pid, &status, WNOHANG) > 0) {
-
-			if(read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1) <= 0)
-				syslog(LOG_WARNING, "Can't read data from child command `%s'", extp->names);
-
-			close(extp->_fd[0]);
-			
-			extp->_pid = 0;
-
-			/* get the exit code returned from the program */
-			extp->result = WEXITSTATUS(status);
-			
-			/* save time of program finishing */
-			extp->_ticks = get_ticks();
 		}
 	}
 }
@@ -273,22 +308,6 @@ run_extFixCmds(void* arg __unused)
 		}
 	}
 
-	TAILQ_FOREACH(extp, &mibext_list, link) {
-
-		int status;
-			
-		if(!extp->_fix_pid)
-			continue;
-
-		/* check if has child exited */
-		if (waitpid(extp->_pid, &status, WNOHANG) > 0) {
-			
-			extp->_fix_pid = 0;
-
-			/* save time of fix program finishing */
-			extp->_fix_ticks = get_ticks();
-		}
-	}
 }
 
 int
@@ -452,8 +471,12 @@ int
 init_mibext (void)
 {
 	int	res;
+
+	signal(SIGCHLD, get_input_from_chlds);
+	
 	if ((res = atexit(mibext_killall)) == -1) {
 		syslog(LOG_ERR, "atexit failed: %m");
 	}
+	
 	return res;
 }
