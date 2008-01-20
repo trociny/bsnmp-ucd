@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.7 2008/01/13 11:04:37 mikolaj Exp $
+ * $Id: mibext.c,v 1.8 2008/01/20 13:40:41 mikolaj Exp $
  *
  */
 
@@ -40,6 +40,7 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <signal.h>
+#include <sys/time.h>
 
 #include "snmp_ucd.h"
 
@@ -61,6 +62,11 @@ struct mibext {
 	uint64_t		_ticks;
 	pid_t			_fix_pid;
 	uint64_t		_fix_ticks;
+};
+
+struct ext_msg {
+	int32_t		result;
+	u_char		output[UCDMAXLEN];
 };
 
 TAILQ_HEAD(mibext_list, mibext);
@@ -91,64 +97,16 @@ next_mibext(const struct mibext *extp)
 }
 #endif
 
+/* handle timeouts when executing commands */
+
 static void
-get_input_from_chlds(int sig __unused)
+extcmd_sighandler(int sig __unused)
 {
-	struct mibext	*extp;
-
-	syslog(LOG_WARNING, "IN HANDLER!!!");
-	TAILQ_FOREACH(extp, &mibext_list, link) {
-
-		int status, pid;
-			
-		if (extp->_pid) {
-
-			/* check if this command exited */
-			for (;;) {
-				pid = waitpid(extp->_pid, &status, WNOHANG);
-				if (pid == -1 && errno == EINTR)
-					continue;
-				if (pid <= 0)
-					break;
-			
-				if(read(extp->_fd[0], (char*) extp->output, UCDMAXLEN-1) <= 0)
-					syslog(LOG_WARNING, "Can't read data from child command `%s'", extp->names);
-			
-				close(extp->_fd[0]);
-			
-				extp->_pid = 0;
-			
-				/* get the exit code returned from the program */
-				extp->result = WEXITSTATUS(status);
-			
-				/* save time of program finishing */
-				extp->_ticks = get_ticks();
-
-				break;
-			}
-		}
-			
-		if (extp->_fix_pid) {
-
-			/* check if this fix command exited */
-
-			for (;;) {
-				pid = waitpid(extp->_fix_pid, &status, WNOHANG);
-				if (pid == -1 && errno == EINTR)
-					continue;
-				if (pid <= 0)
-					break;
-			
-				extp->_fix_pid = 0;
-
-				/* save time of fix program finishing */
-				extp->_fix_ticks = get_ticks();
-
-				break;
-			}
-		}
-	}
+	_exit(127);
 }
+
+
+/* run commands and collect results of programs that have already finished */
 
 void
 run_extCommands(void* arg __unused)
@@ -162,6 +120,7 @@ run_extCommands(void* arg __unused)
 	/* run commads which are ready for running */
 	
 	TAILQ_FOREACH(extp, &mibext_list, link) {
+		int	status;
 		pid_t	pid;
 		
 		if (!extp->command)
@@ -183,72 +142,184 @@ run_extCommands(void* arg __unused)
 		fcntl(extp->_fd[0],F_SETFL,O_NONBLOCK);
 		fcntl(extp->_fd[1],F_SETFL,O_NONBLOCK);
 
-		if ((pid = fork()) < 0) {
+		pid = fork();
+
+		syslog(LOG_WARNING, "%s: after first fork pid is: %d", extp->names, pid);
+		
+		/* execute the command in the child process */
+		if (pid==0) {
+			int fd;
+			
+			/* close all descriptors except stdio and pipe for reading */
+			for (fd = 3; fd < extp->_fd[1]; fd++)
+				close(fd);
+
+			/* fork again */
+			if ((pid = fork()) < 0) {
+				syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+				_exit(127);
+			}
+
+			syslog(LOG_WARNING, "%s: after second fork pid is: %d", extp->names, pid);
+			
+			if (pid == 0) { /* grandchild */
+				struct ext_msg	msg;
+				char	null[UCDMAXLEN];
+				FILE	*fp;
+				
+				msg.output[0] = '\0';
+				
+				/* become process group leader */
+				setpgid(0,0);
+
+				/* trap commands that timeout */
+				signal(SIGALRM, extcmd_sighandler);
+ 				alarm(EXT_TIMEOUT);
+				
+				/* run the command */
+				if ((fp = popen((char*) extp->command, "r")) == NULL) {
+					syslog(LOG_ERR, "popen failed: %m");
+					/* send empty line to parent and exit*/
+					msg.result = 127;
+					write(extp->_fd[1], (char*) &msg, sizeof(msg));
+					_exit(127);
+				}
+
+				/* read first line to output buffer*/
+				if (fgets((char*) msg.output, UCDMAXLEN-1, fp) != NULL) { /* we have some output */
+					int	end;
+					
+					/* chop 'end of line' */
+					end = strlen((char*) msg.output) - 1;
+					if ((end >= 0) && (msg.output[end] == '\n'))
+						msg.output[end] = '\0';
+
+					/* just skip other lines */
+					while (fgets(null, UCDMAXLEN-1, fp) != NULL);
+				
+				}
+				
+				status = pclose(fp);
+				msg.result = WEXITSTATUS(status);
+				/* send result to parent*/
+				write(extp->_fd[1], (char*) &msg, sizeof(msg));
+				close(extp->_fd[1]);
+				_exit(msg.result);
+				
+			} else { /* parent of grandchild */
+				syslog(LOG_WARNING, "%s: exiting without waiting for pid %d", extp->names, pid);
+				_exit(0);
+			}
+		}
+
+		/* parent (bsnmpd process) */
+		
+		if (pid < 0) {
 			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
 			close(extp->_fd[0]);
 			close(extp->_fd[1]);
 			continue;
 		}
+		
+		/* close pipe for writing */
+		close(extp->_fd[1]);
 
-		/* execute the command in the child process */
-		if (pid==0) {
+		/* wait for child */
+		syslog(LOG_WARNING, "%s: waiting for pid %d", extp->names, pid);
+		for (;;) {
+			pid_t res;
+			res = waitpid(pid, &status, 0);
+			if (res == -1 && errno == EINTR)
+				continue;
 			
-			char	buf[UCDMAXLEN], null[UCDMAXLEN];
-			int	fd, len, status;
-			FILE	*fp;
-
-			/* close all descriptors except stdio and pipe for reading */
-			for (fd = 3; fd < extp->_fd[1]; fd++)
-				close(fd);
-
-			/* become process group leader */
-			setpgid(0,0);
-
-
-			/*syslog(LOG_WARNING, "run command `%s'", extp->command);*/
-			
-			/* run the command */
-			if ((fp = popen((char*) extp->command, "r")) == NULL) {
-				syslog(LOG_ERR, "popen failed: %m");
-				/* send empty line to parent and exit*/
-				write(extp->_fd[1], "", 1);
-				_exit(127);
-			}
-
-			/* read first line to output buffer*/
-			if (fgets(buf, UCDMAXLEN-1, fp) != NULL) { /* we have some output */
-				
-				/* chop 'end of line' */
-				len = strlen(buf) - 2;
-				if (len < 0) len = 0;
-				extp->output[len] = '\0';
-
-				/* just skip other lines */
-				while (fgets(null, UCDMAXLEN-1, fp) != NULL);
-				
+			if (res <= 0) {
+				syslog(LOG_ERR, "waitpid failed: %m");
+				break;
 			} else {
-				extp->output[0] = '\0';
-				len = 0;
+				/* get the exit code returned from the program */
+				status = WEXITSTATUS(status);
 			}
 			
-			/* send output line to parent*/
-			write(extp->_fd[1], buf, len+1);
-
-			close(extp->_fd[1]);
-			status = pclose(fp);
-			_exit(WEXITSTATUS(status));
+			syslog(LOG_WARNING, "%s: got it: %d", extp->names, pid);
 			
-		} else { /* parent */
+			if ((res <= 0) || status) {
+				/* something wrong with running program */
+				/* consider it as program has finished abnormaly */
 
-			/* syslog(LOG_WARNING, "got pid %d when run command `%s'", pid, extp->command); */
-			extp->_pid = pid;
+				/* save time of program finishing */
+				extp->_ticks = get_ticks();
+				
+				/* close pipe for reading */
+				close(extp->_fd[0]);
 
-			/* close pipe for writing */
-			close(extp->_fd[1]);
+				/* fill extp data */
+				extp->result = 127;
+				extp->output[0] = '\0';
+				extp->_pid = 0;
+			} else { /*  program is runnng */
+				extp->_pid = res;
+			}
+			break;
+		}
+	}
 
+	/* collect data of finished commands */
+	
+	TAILQ_FOREACH(extp, &mibext_list, link) {
+		struct ext_msg	msg;
+		int	n;
+
+		if (!extp->_pid)
+			break; /* programm is not running */
+
+		for (;;) {
+			n = read(extp->_fd[0], (char*) &msg, sizeof(msg));
+			
+			if (n == -1 && errno == EINTR)
+				continue;	/* interrupted; try again */
+			
+			if (n == -1 && errno == EAGAIN)
+				break;		/* no data this time */
+			
+			if (n != sizeof(msg)) {
+				/* read returned something wrong */
+				/* mark command as abnormally finished */
+				syslog(LOG_WARNING, "%s: read returned %d bytes", extp->names, n);
+				extp->result = 127;
+				strncpy((char*) extp->output, "Exited abnormally!", UCDMAXLEN-1);
+			} else {
+				extp->result = msg.result;
+				strncpy((char*) extp->output, (char*) msg.output, UCDMAXLEN-1);
+			}
+			
+			extp->_pid = 0;
+			
+			close(extp->_fd[0]);
+			
+			/* save time of program finishing */
+			extp->_ticks = get_ticks();
+
+			break;
 		}
 	}
 }
+
+/* get max fd opened */
+
+static int
+get_fdmax(void) {
+	int fd;
+	/* FIXME: may be there is more simple way to find out max fd */
+	fd = open("/dev/null", O_RDONLY);
+	if (fd < 0) {
+		syslog(LOG_WARNING, "Can't open /dev/null");
+		return -1;
+	}
+	close(fd);
+	return fd-1;
+}
+
+/* run fix commands */
 
 void
 run_extFixCmds(void* arg __unused)
@@ -263,6 +334,7 @@ run_extFixCmds(void* arg __unused)
 	
 	TAILQ_FOREACH(extp, &mibext_list, link) {
 		pid_t	pid;
+		int	status;
 		
 		if (!extp->errFix)
 			continue;	/* no fix */
@@ -273,41 +345,67 @@ run_extFixCmds(void* arg __unused)
 		if (extp->result == 0)
 			continue;	/* checked command exited normaly, no need for fix*/
 
-		if (extp->_fix_pid)
-			continue;	/* fix command has already been running */
-
 		if ((current - extp->_fix_ticks) < EXT_UPDATE_INTERVAL)
 			continue; /* run command only if EXT_UPDATE_INTERVAL passes after last run */
-		
-		if ((pid = fork()) < 0) {
-			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
-			continue;
-		}
 
+		pid = fork();
+		
 		/* execute the command in the child process */
 		if (pid==0) {
 
-			int	fd, status;
+			int	fd, fdmax;
 			
-			/* close all descriptors except stdio and pipe for reading */
-			for (fd = 3; fd < extp->_fd[1]; fd++)
+			/* close all descriptors except stdio */
+			fdmax = get_fdmax();
+			for (fd = 3; fd <= fdmax; fd++)
 				close(fd);
 
-			/* syslog(LOG_WARNING, "run command `%s'", extp->errFixCmd); */
+			/* fork again */
 			
-			/* run the command */
-			if ((status = system((char*) extp->errFixCmd)) != 0)
-				syslog(LOG_ERR, "command `%s' has retuned status %d", extp->errFixCmd, WEXITSTATUS(status));
-			_exit(WEXITSTATUS(status));
+			if ((pid = fork()) < 0) {
+				syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+				_exit(127);
+			}
 
-		} else { /* parent */
+			if (pid == 0) { /* grandchild */
+				
+				/* become process group leader */
+				setpgid(0,0);
 
-			/* syslog(LOG_WARNING, "got pid %d when run command `%s'", pid, extp->errFixCmd); */
-			extp->_fix_pid = pid;
+				/* trap commands that timeout */
+				signal(SIGALRM, extcmd_sighandler);
+				alarm(EXT_TIMEOUT);
 
+				/* syslog(LOG_WARNING, "run command `%s'", extp->errFixCmd); */
+			
+				/* run the command */
+				if ((status = system((char*) extp->errFixCmd)) != 0)
+					syslog(LOG_ERR, "command `%s' has retuned status %d", extp->errFixCmd, WEXITSTATUS(status));
+				_exit(WEXITSTATUS(status));
+				
+			}
+
+			/* parent of grandchild */
+			_exit(0);
 		}
-	}
 
+		/* parent */
+
+		if (pid < 0)
+			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+
+		/* wait for child */
+		for (;;) {
+			pid_t res;
+			res = waitpid(pid, &status, 0);
+			if (res == -1 && errno == EINTR)
+				continue;
+			if (res <= 0)
+				syslog(LOG_ERR, "waitpid failed: %m");
+			break;
+		}		
+		extp->_fix_ticks = get_ticks();
+	}
 }
 
 int
@@ -347,15 +445,12 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 						INSERT_OBJECT_INT(extp, &mibext_list);
 					} else {
 						/* we have already had some command defined  under this index.*/
-						/* check if the command is run to kill the process */
+						/* check if the command is run to close our end of pipe */
 						if (extp->_pid) {
-							kill(extp->_pid, SIGTERM);
+							close(extp->_fd[0]);
 							extp->_pid = 0;
 						}
-						if (extp->_fix_pid) {
-							kill(extp->_fix_pid, SIGTERM);
-							extp->_fix_pid = 0;
-						}
+						extp->_fix_pid = 0;
 					}
 					return  string_save(value, context, -1, &extp->names);
 
@@ -429,23 +524,6 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 	return (ret);
 };
 
-/* kill all running commands */
-static void
-mibext_killall (void)
-{
-	struct mibext *extp;
-	TAILQ_FOREACH(extp, &mibext_list, link) {
-		if (extp->_pid) {
-			kill(extp->_pid, SIGTERM);
-			extp->_pid = 0;
-		}
-		if (extp->_fix_pid) {
-			kill(extp->_fix_pid, SIGTERM);
-			extp->_fix_pid = 0;
-		}
-	}
-}
-
 /* free mibext list */
 static void
 mibext_free (void)
@@ -463,20 +541,5 @@ mibext_free (void)
 void
 mibext_fini (void)
 {
-	mibext_killall();
 	mibext_free();
-}
-
-int
-init_mibext (void)
-{
-	int	res;
-
-	signal(SIGCHLD, get_input_from_chlds);
-	
-	if ((res = atexit(mibext_killall)) == -1) {
-		syslog(LOG_ERR, "atexit failed: %m");
-	}
-	
-	return res;
 }

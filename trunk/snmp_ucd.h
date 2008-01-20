@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.6 2008/01/08 21:59:32 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.7 2008/01/20 13:40:41 mikolaj Exp $
  *
  */
 
@@ -37,6 +37,7 @@
 #define UPDATE_INTERVAL		500	/* update interval in ticks */
 #define EXT_CHECK_INTERVAL	100	/* if command exited check interval in ticks */
 #define EXT_UPDATE_INTERVAL	1000	/* ext commands rerun interval in ticks */
+#define EXT_TIMEOUT		10	/* ext commands execution timeout interval in secs */
 
 #define UCDMAXLEN		256	/* used as length of buffers */
 
@@ -60,12 +61,15 @@ extern int init_mibss (void);
 extern void get_ss_data (void*);
 
 /* mibext.c */
-extern int init_mibext (void);
+extern int init_mibext (struct lmodule *);
 extern void mibext_fini (void);
 extern void run_extCommands (void*);
 extern void run_extFixCmds (void*);
 
 /* mibversion.c */
 extern int init_mibversion (void);
+
+/* snmp_ucd.c */
+extern struct lmodule *module;
 
 #endif /* SNMP_UCD_H */

@@ -23,7 +23,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\" $Id: bsnmp-ucd.8,v 1.4 2008/01/07 21:40:37 mikolaj Exp $
+.\" $Id: bsnmp-ucd.8,v 1.5 2008/01/20 13:40:41 mikolaj Exp $
 .\"
 .Dd December, 2007
 .Dt bsnmp-ucd 8
@@ -74,15 +74,16 @@ For example, to collect lastpid statistics under mib
 UCD-SNMP-MIB::extOutput.0 you can specify:
 .Bd -literal -offset indent
 extNames.0 = "lastpid"
-extCommand.0 = "/sbin/sysctl kern.lastpid"
+extCommand.0 = "/sbin/sysctl -n kern.lastpid"
 .Ed
 .Pp
 Note: Index order is important. Commands should be indexed beginning
 from 0 and without gaps.
 .Pp
-When program finished, the exit status is available via extResult
-mib and the first line of output is placed in extOutupt mib. The next
-time the program will be run only after 30 seconds.
+When program finished, the exit status is available via extResult mib
+and the first line of output is placed in extOutupt mib. The next time
+the program will be run only after some period of time (this period is
+set in sources and can be changed only by recompiling module).
 .Pp
 It is possible to specify command that will be run to fix
 problem when extension command returns nonzero status. For this,
@@ -93,7 +94,7 @@ extErrFix.<INDEX> = 1
 extErrFixCmd.<INDEX> = <fix command>
 .Ed
 .Pp
-For example, to monitor apache and restart process when it down,
+For example, to monitor apache and restart process when it is down,
 you can add to configuration file:
 .Bd -literal -offset indent
 extNames.1 = "apache"
@@ -106,6 +107,4 @@ extErrFixCmd.1 = "/usr/local/etc/rc.d/apache restart"
 .Sh AUTHOR
 .An Mikolaj Golub
 .Sh BUGS
-When stopping bsnpd daemon, if extension command (defined in extTable)
-is still running, it will not be terminated automatically. You have to
-kill it manualy or allow to finish itself.
+extTable is rather experimental feature at this moment.
