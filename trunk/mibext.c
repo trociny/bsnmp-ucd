@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.8 2008/01/20 13:40:41 mikolaj Exp $
+ * $Id: mibext.c,v 1.9 2008/01/20 15:35:30 mikolaj Exp $
  *
  */
 
@@ -102,6 +102,7 @@ next_mibext(const struct mibext *extp)
 static void
 extcmd_sighandler(int sig __unused)
 {
+	killpg(0, SIGTERM);
 	_exit(127);
 }
 
