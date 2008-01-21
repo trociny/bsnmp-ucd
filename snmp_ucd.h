@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.7 2008/01/20 13:40:41 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.8 2008/01/21 21:05:41 mikolaj Exp $
  *
  */
 
@@ -68,8 +68,5 @@ extern void run_extFixCmds (void*);
 
 /* mibversion.c */
 extern int init_mibversion (void);
-
-/* snmp_ucd.c */
-extern struct lmodule *module;
 
 #endif /* SNMP_UCD_H */
