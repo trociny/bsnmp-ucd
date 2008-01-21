@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.9 2008/01/20 15:35:30 mikolaj Exp $
+ * $Id: mibext.c,v 1.10 2008/01/21 21:05:41 mikolaj Exp $
  *
  */
 
@@ -58,9 +58,8 @@ struct mibext {
 	int32_t			errFix;
 	u_char			*errFixCmd;
 	int 			_fd[2];
-	pid_t			_pid;
+	int			_is_running;
 	uint64_t		_ticks;
-	pid_t			_fix_pid;
 	uint64_t		_fix_ticks;
 };
 
@@ -127,7 +126,7 @@ run_extCommands(void* arg __unused)
 		if (!extp->command)
 			continue; /* no command specified */
 
-		if (extp->_pid)
+		if (extp->_is_running)
 			continue; /* command has already been running */
 
 		if ((current - extp->_ticks) < EXT_UPDATE_INTERVAL)
@@ -256,9 +255,9 @@ run_extCommands(void* arg __unused)
 				/* fill extp data */
 				extp->result = 127;
 				extp->output[0] = '\0';
-				extp->_pid = 0;
+				extp->_is_running = 0;
 			} else { /*  program is runnng */
-				extp->_pid = res;
+				extp->_is_running = 1;
 			}
 			break;
 		}
@@ -270,7 +269,7 @@ run_extCommands(void* arg __unused)
 		struct ext_msg	msg;
 		int	n;
 
-		if (!extp->_pid)
+		if (!extp->_is_running)
 			break; /* programm is not running */
 
 		for (;;) {
@@ -293,7 +292,7 @@ run_extCommands(void* arg __unused)
 				strncpy((char*) extp->output, (char*) msg.output, UCDMAXLEN-1);
 			}
 			
-			extp->_pid = 0;
+			extp->_is_running = 0;
 			
 			close(extp->_fd[0]);
 			
@@ -447,11 +446,10 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 					} else {
 						/* we have already had some command defined  under this index.*/
 						/* check if the command is run to close our end of pipe */
-						if (extp->_pid) {
+						if (extp->_is_running) {
 							close(extp->_fd[0]);
-							extp->_pid = 0;
+							extp->_is_running = 0;
 						}
-						extp->_fix_pid = 0;
 					}
 					return  string_save(value, context, -1, &extp->names);
 

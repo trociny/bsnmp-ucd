@@ -23,14 +23,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.c,v 1.7 2008/01/20 13:40:41 mikolaj Exp $
+ * $Id: snmp_ucd.c,v 1.8 2008/01/21 21:05:41 mikolaj Exp $
  *
  */
 
 #include "snmp_ucd.h"
 
 /* our module handle */
-struct lmodule *module;
+static struct lmodule *module;
 
 /* OIDs */
 static const struct asn_oid oid_ucdavis = OIDX_ucdavis;
