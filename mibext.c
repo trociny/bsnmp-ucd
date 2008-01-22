@@ -23,11 +23,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.10 2008/01/21 21:05:41 mikolaj Exp $
+ * $Id: mibext.c,v 1.11 2008/01/22 20:36:25 mikolaj Exp $
  *
  */
 
-#include <assert.h>
 #include <syslog.h>
 #include <sys/queue.h>
 #include <stdlib.h>
@@ -101,7 +100,6 @@ next_mibext(const struct mibext *extp)
 static void
 extcmd_sighandler(int sig __unused)
 {
-	killpg(0, SIGTERM);
 	_exit(127);
 }
 
@@ -134,7 +132,7 @@ run_extCommands(void* arg __unused)
 		
 		/* create a pipe */
 		if (pipe(extp->_fd) != 0) {
-			syslog(LOG_WARNING, "%s: %m", __func__);
+			syslog(LOG_ERR, "failed to pipe: %s: %m", __func__);
 			continue;
 		}
 
@@ -144,8 +142,6 @@ run_extCommands(void* arg __unused)
 
 		pid = fork();
 
-		syslog(LOG_WARNING, "%s: after first fork pid is: %d", extp->names, pid);
-		
 		/* execute the command in the child process */
 		if (pid==0) {
 			int fd;
@@ -156,12 +152,10 @@ run_extCommands(void* arg __unused)
 
 			/* fork again */
 			if ((pid = fork()) < 0) {
-				syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+				syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 				_exit(127);
 			}
 
-			syslog(LOG_WARNING, "%s: after second fork pid is: %d", extp->names, pid);
-			
 			if (pid == 0) { /* grandchild */
 				struct ext_msg	msg;
 				char	null[UCDMAXLEN];
@@ -170,7 +164,7 @@ run_extCommands(void* arg __unused)
 				msg.output[0] = '\0';
 				
 				/* become process group leader */
-				setpgid(0,0);
+				setpgid(0, 0);
 
 				/* trap commands that timeout */
 				signal(SIGALRM, extcmd_sighandler);
@@ -178,7 +172,7 @@ run_extCommands(void* arg __unused)
 				
 				/* run the command */
 				if ((fp = popen((char*) extp->command, "r")) == NULL) {
-					syslog(LOG_ERR, "popen failed: %m");
+					syslog(LOG_ERR, "popen failed: %s: %m", __func__);
 					/* send empty line to parent and exit*/
 					msg.result = 127;
 					write(extp->_fd[1], (char*) &msg, sizeof(msg));
@@ -207,7 +201,7 @@ run_extCommands(void* arg __unused)
 				_exit(msg.result);
 				
 			} else { /* parent of grandchild */
-				syslog(LOG_WARNING, "%s: exiting without waiting for pid %d", extp->names, pid);
+
 				_exit(0);
 			}
 		}
@@ -215,7 +209,7 @@ run_extCommands(void* arg __unused)
 		/* parent (bsnmpd process) */
 		
 		if (pid < 0) {
-			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+			syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 			close(extp->_fd[0]);
 			close(extp->_fd[1]);
 			continue;
@@ -225,7 +219,6 @@ run_extCommands(void* arg __unused)
 		close(extp->_fd[1]);
 
 		/* wait for child */
-		syslog(LOG_WARNING, "%s: waiting for pid %d", extp->names, pid);
 		for (;;) {
 			pid_t res;
 			res = waitpid(pid, &status, 0);
@@ -233,14 +226,12 @@ run_extCommands(void* arg __unused)
 				continue;
 			
 			if (res <= 0) {
-				syslog(LOG_ERR, "waitpid failed: %m");
+				syslog(LOG_ERR, "waitpid failed: %s: %m", __func__);
 				break;
 			} else {
 				/* get the exit code returned from the program */
 				status = WEXITSTATUS(status);
 			}
-			
-			syslog(LOG_WARNING, "%s: got it: %d", extp->names, pid);
 			
 			if ((res <= 0) || status) {
 				/* something wrong with running program */
@@ -284,7 +275,6 @@ run_extCommands(void* arg __unused)
 			if (n != sizeof(msg)) {
 				/* read returned something wrong */
 				/* mark command as abnormally finished */
-				syslog(LOG_WARNING, "%s: read returned %d bytes", extp->names, n);
 				extp->result = 127;
 				strncpy((char*) extp->output, "Exited abnormally!", UCDMAXLEN-1);
 			} else {
@@ -312,7 +302,7 @@ get_fdmax(void) {
 	/* FIXME: may be there is more simple way to find out max fd */
 	fd = open("/dev/null", O_RDONLY);
 	if (fd < 0) {
-		syslog(LOG_WARNING, "Can't open /dev/null");
+		syslog(LOG_ERR, "Can't open /dev/null: %s: %m", __func__);
 		return -1;
 	}
 	close(fd);
@@ -363,24 +353,22 @@ run_extFixCmds(void* arg __unused)
 			/* fork again */
 			
 			if ((pid = fork()) < 0) {
-				syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+				syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 				_exit(127);
 			}
 
 			if (pid == 0) { /* grandchild */
 				
 				/* become process group leader */
-				setpgid(0,0);
+				setpgid(0, 0);
 
 				/* trap commands that timeout */
 				signal(SIGALRM, extcmd_sighandler);
 				alarm(EXT_TIMEOUT);
 
-				/* syslog(LOG_WARNING, "run command `%s'", extp->errFixCmd); */
-			
 				/* run the command */
 				if ((status = system((char*) extp->errFixCmd)) != 0)
-					syslog(LOG_ERR, "command `%s' has retuned status %d", extp->errFixCmd, WEXITSTATUS(status));
+					syslog(LOG_WARNING, "command `%s' has retuned status %d", extp->errFixCmd, WEXITSTATUS(status));
 				_exit(WEXITSTATUS(status));
 				
 			}
@@ -392,7 +380,7 @@ run_extFixCmds(void* arg __unused)
 		/* parent */
 
 		if (pid < 0)
-			syslog(LOG_WARNING, "Can't fork: %s: %m", __func__);
+			syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 
 		/* wait for child */
 		for (;;) {
@@ -401,7 +389,7 @@ run_extFixCmds(void* arg __unused)
 			if (res == -1 && errno == EINTR)
 				continue;
 			if (res <= 0)
-				syslog(LOG_ERR, "waitpid failed: %m");
+				syslog(LOG_ERR, "failed to waitpid: %s: %m", __func__);
 			break;
 		}		
 		extp->_fix_ticks = get_ticks();
@@ -437,7 +425,7 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 				case LEAF_extNames:
 					if ((extp = find_ext(value->var.subs[sub])) == NULL) {
 						if ((extp = malloc(sizeof(*extp))) == NULL) {
-							syslog(LOG_WARNING, "%s: %m", __func__);
+							syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
 							return (SNMP_ERR_NOT_WRITEABLE);
 						}
 						memset(extp, 0, sizeof(*extp));
@@ -479,8 +467,7 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 			return (SNMP_ERR_NOERROR);
     
 		default:
-			assert(0);
-			break;
+			return (SNMP_ERR_RES_UNAVAIL);
 	}
 
 	ret = SNMP_ERR_NOERROR;
@@ -516,7 +503,7 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		default:
-			assert(0);
+			ret = SNMP_ERR_RES_UNAVAIL;
 			break;
 	}
 

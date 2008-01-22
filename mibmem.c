@@ -23,11 +23,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibmem.c,v 1.3 2007/12/27 20:18:51 mikolaj Exp $
+ * $Id: mibmem.c,v 1.4 2008/01/22 20:36:25 mikolaj Exp $
  *
  */
 
-#include <assert.h>
 #include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
@@ -100,10 +99,10 @@ static void get_mem_data (void) {
 	u_long		val;
 
 	if (sysctlbyname("vm.vmtotal", &total, &total_size, NULL, 0) < 0)
-		syslog(LOG_WARNING, "%s: %m", __func__);
+		syslog(LOG_ERR, "sysctl filed: %s: %m", __func__);
 
 	if (swapmode(&mibmem.totalSwap, &mibmem.availSwap) < 0)
-		syslog(LOG_WARNING, "%s: %m", __func__);
+		syslog(LOG_WARNING, "swapmode failed: %s: %m", __func__);
 
 	mibmem.swapError = (mibmem.availSwap <= mibmem.minimumSwap);
 
@@ -132,7 +131,7 @@ init_mibmemory() {
 	
 	kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, "kvm_open");
 	if (kd == NULL)
-		syslog(LOG_WARNING, "%s: %m", __func__);
+		syslog(LOG_ERR, "kvm_open failed: %s: %m", __func__);
 
 	mibmem.index = 0;
 	mibmem.errorName = (const u_char *) "swap";
@@ -174,21 +173,21 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 			switch(which) {
 				case LEAF_memMinimumSwap:
 					mibmem.minimumSwap = value->v.integer;
-					return SNMP_ERR_NOERROR;
+					return (SNMP_ERR_NOERROR);
 				case LEAF_memSwapErrorMsg:
 					return  string_save(value, context, -1, &mibmem.swapErrorMsg);
 				default:
 					break;
 			}
-			return SNMP_ERR_NOT_WRITEABLE;
+			return (SNMP_ERR_NOT_WRITEABLE);
     
 		case SNMP_OP_GETNEXT:
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
-			return SNMP_ERR_NOERROR;
+			return (SNMP_ERR_NOERROR);
     
 		default:
-			assert(0);
+			return (SNMP_ERR_RES_UNAVAIL);
 			break;
 	}
   	
@@ -238,7 +237,7 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 			ret = string_get(value, mibmem.swapErrorMsg, -1);
 			break;
 		default:
-			assert(0);
+			ret = SNMP_ERR_RES_UNAVAIL;
 			break;
 	}
 
