@@ -1,7 +1,7 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.4 2008/01/13 14:32:50 mikolaj Exp $
+# $Id: Makefile,v 1.5 2008/01/23 18:18:17 mikolaj Exp $
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
@@ -11,6 +11,8 @@ DEFS=	${MOD}_tree.def
 MAN8=	bsnmp-${MOD}.8
 
 XSYM=	ucdavis
+
+LDADD=	-lkvm 
 
 WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wstrict-prototypes -Wmissing-prototypes \
@@ -43,7 +45,7 @@ INSTALL_DATA=	install  -o root -g wheel -m 444
 all:	$(LIB)
 
 $(LIB): ${MOD}_oid.h ${MOD}_tree.h $(SRCS:.c=.lo)
-	$(LIBTOOL) --mode=link $(CC) $(LDLAGS) -module -o ${.TARGET} $(SRCS:.c=.lo) -rpath $(LIBDIR) -version-info $(SHLIB_MAJOR):$(SHLIB_MINOR)
+	$(LIBTOOL) --mode=link $(CC) $(LDADD) $(LDLAGS) -module -o ${.TARGET} $(SRCS:.c=.lo) -rpath $(LIBDIR) -version-info $(SHLIB_MAJOR):$(SHLIB_MINOR)
 
 .SUFFIXES: .lo
 
