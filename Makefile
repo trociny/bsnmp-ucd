@@ -1,7 +1,7 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.1.1.1.2.1 2008/01/08 19:25:45 mikolaj Exp $
+# $Id: Makefile,v 1.1.1.1.2.2 2008/01/23 18:32:13 mikolaj Exp $
 
 MOD=  ucd
 SRCS= ${MOD}_tree.c snmp_${MOD}.c utils.c mibla.c mibmem.c mibss.c mibversion.c
@@ -18,7 +18,9 @@ WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wbad-function-cast -Wchar-subscripts -Winline \
 	-Wnested-externs -Wredundant-decls -std=c99
 
-CFLAGS=	${WARNS} -O2 
+LDADD=	-lkvm
+
+CFLAGS +=	${WARNS} -O2
 
 LIB=	snmp_${MOD}.la
 SHLIB_MAJOR=	1
@@ -42,7 +44,7 @@ INSTALL_DATA=	install  -o root -g wheel -m 444
 all:	$(LIB)
 
 $(LIB): ${MOD}_oid.h ${MOD}_tree.h $(SRCS:.c=.lo)
-	$(LIBTOOL) --mode=link $(CC) $(LDLAGS) -module -o ${.TARGET} $(SRCS:.c=.lo) -rpath $(LIBDIR) -version-info $(SHLIB_MAJOR):$(SHLIB_MINOR)
+	$(LIBTOOL) --mode=link $(CC) $(LDADD) $(LDLAGS) -module -o ${.TARGET} $(SRCS:.c=.lo) -rpath $(LIBDIR) -version-info $(SHLIB_MAJOR):$(SHLIB_MINOR)
 
 .SUFFIXES: .lo
 
