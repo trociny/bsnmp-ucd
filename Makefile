@@ -1,18 +1,15 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.5 2008/01/23 18:18:17 mikolaj Exp $
+# $Id: Makefile,v 1.1.1.1.2.2 2008/01/23 18:32:13 mikolaj Exp $
 
-MOD=	ucd
-SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
-	mibla.c mibmem.c mibss.c mibext.c mibversion.c
-INCS=	snmp_${MOD}.h
-DEFS=	${MOD}_tree.def
-MAN8=	bsnmp-${MOD}.8
+MOD=  ucd
+SRCS= ${MOD}_tree.c snmp_${MOD}.c utils.c mibla.c mibmem.c mibss.c mibversion.c
+INCS= snmp_${MOD}.h
+DEFS= ${MOD}_tree.def
+MAN8= bsnmp-${MOD}.8
 
-XSYM=	ucdavis
-
-LDADD=	-lkvm 
+XSYM= ucdavis
 
 WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wstrict-prototypes -Wmissing-prototypes \
@@ -21,7 +18,9 @@ WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wbad-function-cast -Wchar-subscripts -Winline \
 	-Wnested-externs -Wredundant-decls -std=c99
 
-CFLAGS +=	${WARNS} -O2 
+LDADD=	-lkvm
+
+CFLAGS +=	${WARNS} -O2
 
 LIB=	snmp_${MOD}.la
 SHLIB_MAJOR=	1

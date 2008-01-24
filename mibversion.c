@@ -23,10 +23,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibversion.c,v 1.3 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibversion.c,v 1.2 2007/12/27 20:18:51 mikolaj Exp $
  *
  */
 
+#include <assert.h>
+#include <syslog.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -53,9 +55,9 @@ int
 init_mibversion()
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*) "$Name:  $";
-	mibver.date = (const u_char*) "$Date: 2008/01/22 20:36:25 $";
-	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.3 2008/01/22 20:36:25 mikolaj Exp $";
+	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-1-4 $";
+	mibver.date = (const u_char*) "$Date: 2007/12/27 20:18:51 $";
+	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.2 2007/12/27 20:18:51 mikolaj Exp $";
 	mibver.configureOptions = (const u_char*) "";
 
 	return (0);
@@ -84,15 +86,16 @@ op_version(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		case SNMP_OP_SET:
-			return (SNMP_ERR_NOT_WRITEABLE);
+			return SNMP_ERR_NOT_WRITEABLE;
     
 		case SNMP_OP_GETNEXT:
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
+			return SNMP_ERR_NOERROR;
     
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+			assert(0);
+			break;
 	}
   	
 	ret = SNMP_ERR_NOERROR;
@@ -119,7 +122,7 @@ op_version(struct snmp_context * context __unused, struct snmp_value * value,
 			ret = string_get(value, mibver.configureOptions, -1);
 			break;
 		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
+			assert(0);
 			break;
 	}
 

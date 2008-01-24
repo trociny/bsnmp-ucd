@@ -23,10 +23,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.5 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibla.c,v 1.3.2.1 2008/01/08 19:25:45 mikolaj Exp $
  *
  */
 
+#include <assert.h>
 #include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +62,7 @@ init_mibla_list() {
 	double sys_la[3];
 
 	if (getloadavg(sys_la, 3) != 3) {
-		syslog(LOG_ERR, "getloadavg failed: %s: %m", __func__);
+		syslog(LOG_WARNING, "%s: %m", __func__);
 		return -1;
 	}
 
@@ -91,7 +92,7 @@ update_la_data(void)
 		int i;
 
 		if (getloadavg(sys_la, 3) != 3) 
-			syslog(LOG_ERR, "getloadavg failed: %s: %m", __func__);
+			syslog(LOG_WARNING, "%s: %m", __func__);
 	
 		for (i = 0; i < 3; i++) {
 			float crit;
@@ -142,14 +143,15 @@ op_laTable(struct snmp_context * context __unused, struct snmp_value * value,
 				default:
 					break;
 			}
-			return (SNMP_ERR_NOT_WRITEABLE);
+			return SNMP_ERR_NOT_WRITEABLE;
     
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
+			return SNMP_ERR_NOERROR;
     
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+			assert(0);
+			break;
 	}
   	
 	update_la_data();
@@ -191,7 +193,7 @@ op_laTable(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
+			assert(0);
 			break;
 	}
 

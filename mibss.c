@@ -23,10 +23,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibss.c,v 1.4 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibss.c,v 1.2 2007/12/27 20:18:51 mikolaj Exp $
  *
  */
 
+#include <assert.h>
 #include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
@@ -189,7 +190,7 @@ get_ss_data(void* arg  __unused)
 	}
 
 	if (sysctlbyname("kern.cp_time", &cp_time, &cp_time_size, NULL, 0) < 0)
-		syslog(LOG_ERR, "sysctl failed: %s: %m", __func__);
+		syslog(LOG_WARNING, "%s: %m", __func__);
 
 	/* convert cp_time counts to percentages * 10 */
 	percentages(CPUSTATES, cpu_states, cp_time, cp_old, cp_diff);
@@ -215,6 +216,8 @@ init_mibss() {
 	mibss.index = 1;
 	mibss.errorName = (const u_char *) "systemStats";
 	
+	get_ss_data(NULL);
+
 	return (0);
 }
 
@@ -231,15 +234,16 @@ op_systemStats(struct snmp_context *context __unused, struct snmp_value *value,
 			break;
 
 		case SNMP_OP_SET:
-			return (SNMP_ERR_NOT_WRITEABLE);
+			return SNMP_ERR_NOT_WRITEABLE;
     
 		case SNMP_OP_GETNEXT:
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
+			return SNMP_ERR_NOERROR;
     
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+			assert(0);
+			break;
 	}
   	
 	ret = SNMP_ERR_NOERROR;
@@ -310,7 +314,7 @@ op_systemStats(struct snmp_context *context __unused, struct snmp_value *value,
 			value->v.integer = mibss.rawSwapOut;
 			break;
 		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
+			assert(0);
 			break;
 	}
 
