@@ -93,8 +93,8 @@
           (54 ssCpuRawWait COUNTER op_systemStats GET)
           (55 ssCpuRawKernel COUNTER op_systemStats GET)
           (56 ssCpuRawInterrupt COUNTER op_systemStats GET)
- #         (57 ssIORawSent COUNTER op_systemStats GET)
- #         (58 ssIORawReceived COUNTER op_systemStats GET)
+#          (57 ssIORawSent COUNTER op_systemStats GET)
+#          (58 ssIORawReceived COUNTER op_systemStats GET)
           (59 ssRawInterrupts COUNTER op_systemStats GET)
           (60 ssRawContexts COUNTER op_systemStats GET)
           (61 ssCpuRawSoftIRQ COUNTER op_systemStats GET)
@@ -103,8 +103,25 @@
         )
 #        (12 ucdInternal
 #        )
-#        (13 ucdExperimental
-#        )
+        (13 ucdExperimental
+          (15 ucdDiskIOMIB
+            (1 diskIOTable
+              (1 diskIOEntry : INTEGER op_diskIOTable
+                (1 diskIOIndex INTEGER GET)
+                (2 diskIODevice OCTETSTRING GET)
+                (3 diskIONRead COUNTER GET)
+                (4 diskIONWritten COUNTER GET)
+                (5 diskIOReads COUNTER GET)
+                (6 diskIOWrites COUNTER GET)
+#                (9 diskIOLA1 INTEGER GET)
+#                (10 diskIOLA5 INTEGER GET)
+#                (11 diskIOLA15 INTEGER GET)
+                (12 diskIONReadX COUNTER64 GET)
+                (13 diskIONWrittenX COUNTER64 GET)
+              )
+            )
+          )
+        )
 #        (15 fileTable
 #          (1 fileEntry : INTEGER op_fileTable
 #            (1 fileIndex INTEGER GET)
