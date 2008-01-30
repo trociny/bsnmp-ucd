@@ -1,8 +1,16 @@
 bsnmp-ucd (CURRENT)
 
+  * UCD-DISKIO-MIB (without IOLA) implemented
+
   * UCD-SNMP-MIB::extTable implemented
 
 -- Mikolaj Golub <to.my.trociny@gmail.com>
+
+bsnmp-ucd (0.1.4)
+
+  * force to link with libkvm
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2008/01/24
 
 bsnmp-ucd (0.1.3)
 

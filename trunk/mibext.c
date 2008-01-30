@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.11 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibext.c,v 1.12 2008/01/30 21:16:34 mikolaj Exp $
  *
  */
 
@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <paths.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -300,7 +301,7 @@ static int
 get_fdmax(void) {
 	int fd;
 	/* FIXME: may be there is more simple way to find out max fd */
-	fd = open("/dev/null", O_RDONLY);
+	fd = open(_PATH_DEVNULL, O_RDONLY);
 	if (fd < 0) {
 		syslog(LOG_ERR, "Can't open /dev/null: %s: %m", __func__);
 		return -1;

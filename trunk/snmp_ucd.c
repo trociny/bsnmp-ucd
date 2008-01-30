@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.c,v 1.8 2008/01/21 21:05:41 mikolaj Exp $
+ * $Id: snmp_ucd.c,v 1.9 2008/01/30 21:16:34 mikolaj Exp $
  *
  */
 
@@ -87,6 +87,7 @@ ucd_fini (void)
 	timer_stop(timer_ext);
 	timer_stop(timer_fix);
 	mibext_fini();
+	mibdio_fini();
 	or_unregister(ucdavis_index);
 	return (0);
 }

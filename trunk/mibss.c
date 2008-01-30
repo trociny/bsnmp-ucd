@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibss.c,v 1.4 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibss.c,v 1.5 2008/01/30 21:16:34 mikolaj Exp $
  *
  */
 
@@ -34,16 +34,11 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <paths.h>
-#include <fcntl.h>
-#include <kvm.h>
-#include <sys/vmmeter.h>
-#include <vm/vm_param.h>
 
 #include "snmp_ucd.h"
-
-#define CPUSTATES 5
 
 /*
  * mibmemory structures and functions
@@ -194,15 +189,15 @@ get_ss_data(void* arg  __unused)
 	/* convert cp_time counts to percentages * 10 */
 	percentages(CPUSTATES, cpu_states, cp_time, cp_old, cp_diff);
 
-	mibss.cpuUser = cpu_states[0] / 10;
-	mibss.cpuSystem = (cpu_states[2] + cpu_states[3]) / 10;
-	mibss.cpuIdle = cpu_states[4] / 10;
-	mibss.cpuRawUser = cp_time[0];
-	mibss.cpuRawNice = cp_time[1];
-	mibss.cpuRawSystem = cp_time[2] + cp_time[3];
-	mibss.cpuRawIdle = cp_time[4];
-	mibss.cpuRawKernel = cp_time[2];
-	mibss.cpuRawInterrupt = cp_time[3];
+	mibss.cpuUser = cpu_states[CP_USER] / 10;
+	mibss.cpuSystem = (cpu_states[CP_SYS] + cpu_states[CP_INTR]) / 10;
+	mibss.cpuIdle = cpu_states[CP_IDLE] / 10;
+	mibss.cpuRawUser = cp_time[CP_USER];
+	mibss.cpuRawNice = cp_time[CP_NICE];
+	mibss.cpuRawSystem = cp_time[CP_SYS] + cp_time[CP_INTR];
+	mibss.cpuRawIdle = cp_time[CP_IDLE];
+	mibss.cpuRawKernel = cp_time[CP_SYS];
+	mibss.cpuRawInterrupt = cp_time[CP_INTR];
 }
 
 /* init all our ss objects */
@@ -274,40 +269,40 @@ op_systemStats(struct snmp_context *context __unused, struct snmp_value *value,
 			value->v.integer = mibss.cpuIdle;
 			break;
 		case LEAF_ssCpuRawUser:
-			value->v.integer = mibss.cpuRawUser;
+			value->v.uint32 = mibss.cpuRawUser;
 			break;
 		case LEAF_ssCpuRawNice:
-			value->v.integer = mibss.cpuRawNice;
+			value->v.uint32 = mibss.cpuRawNice;
 			break;
 		case LEAF_ssCpuRawSystem:
-			value->v.integer = mibss.cpuRawSystem;
+			value->v.uint32 = mibss.cpuRawSystem;
 			break;
 		case LEAF_ssCpuRawIdle:
-			value->v.integer = mibss.cpuRawIdle;
+			value->v.uint32 = mibss.cpuRawIdle;
 			break;
 		case LEAF_ssCpuRawWait:
-			value->v.integer = mibss.cpuRawWait;
+			value->v.uint32 = mibss.cpuRawWait;
 			break;
 		case LEAF_ssCpuRawKernel:
-			value->v.integer = mibss.cpuRawKernel;
+			value->v.uint32 = mibss.cpuRawKernel;
 			break;
 		case LEAF_ssCpuRawInterrupt:
-			value->v.integer = mibss.cpuRawInterrupt;
+			value->v.uint32 = mibss.cpuRawInterrupt;
 			break;
 		case LEAF_ssRawInterrupts:
-			value->v.integer = mibss.rawInterrupts;
+			value->v.uint32 = mibss.rawInterrupts;
 			break;
 		case LEAF_ssRawContexts:
-			value->v.integer = mibss.rawContexts;
+			value->v.uint32 = mibss.rawContexts;
 			break;
 		case LEAF_ssCpuRawSoftIRQ:
-			value->v.integer = mibss.cpuRawSoftIRQ;
+			value->v.uint32 = mibss.cpuRawSoftIRQ;
 			break;
 		case LEAF_ssRawSwapIn:
-			value->v.integer = mibss.rawSwapIn;
+			value->v.uint32 = mibss.rawSwapIn;
 			break;
 		case LEAF_ssRawSwapOut:
-			value->v.integer = mibss.rawSwapOut;
+			value->v.uint32 = mibss.rawSwapOut;
 			break;
 		default:
 			ret = SNMP_ERR_RES_UNAVAIL;
