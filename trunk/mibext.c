@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.12 2008/01/30 21:16:34 mikolaj Exp $
+ * $Id: mibext.c,v 1.13 2008/01/31 20:13:16 mikolaj Exp $
  *
  */
 
@@ -303,7 +303,7 @@ get_fdmax(void) {
 	/* FIXME: may be there is more simple way to find out max fd */
 	fd = open(_PATH_DEVNULL, O_RDONLY);
 	if (fd < 0) {
-		syslog(LOG_ERR, "Can't open /dev/null: %s: %m", __func__);
+		syslog(LOG_ERR, "Can't open %s: %s: %m", _PATH_DEVNULL, __func__);
 		return -1;
 	}
 	close(fd);
