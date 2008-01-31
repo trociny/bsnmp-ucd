@@ -1,10 +1,10 @@
-bsnmp-ucd (CURRENT)
+bsnmp-ucd (0.2.0)
 
   * UCD-DISKIO-MIB (without IOLA) implemented
 
   * UCD-SNMP-MIB::extTable implemented
 
--- Mikolaj Golub <to.my.trociny@gmail.com>
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2008/01/31
 
 bsnmp-ucd (0.1.4)
 
