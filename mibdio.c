@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibdio.c,v 1.1 2008/01/31 20:28:13 mikolaj Exp $
+ * $Id: mibdio.c,v 1.2 2008/02/01 21:54:39 mikolaj Exp $
  *
  */
 
@@ -59,6 +59,12 @@ TAILQ_HEAD(mibdio_list, mibdio);
 
 static struct mibdio_list mibdio_list = TAILQ_HEAD_INITIALIZER(mibdio_list);
 
+static int	version_ok;	/* result of checking the userland devstat version against the kernel */
+
+static int	ondevs;		/* here we store old number of devices */
+
+static uint64_t last_dio_update;	/* ticks of the last dio data update */
+
 static struct mibdio *
 find_dio (int32_t idx)
 {
@@ -89,9 +95,18 @@ mibdio_free (void)
 static int
 update_dio_data(void)
 {
-	int	i, res;
+	int	i, res, ndevs;
 	struct statinfo	stats;
 	struct devinfo	dinfo;
+
+	if (!version_ok)
+		return -1;
+
+	
+	if ((get_ticks() - last_dio_update) < UPDATE_INTERVAL)
+		return 1;
+
+	last_dio_update = get_ticks();
 
 	memset(&stats, 0, sizeof(stats));
 	memset(&dinfo, 0, sizeof(dinfo));
@@ -104,11 +119,15 @@ update_dio_data(void)
 		return -1;
 	} 
 
-	if (res == 1) { /* device list has changed. rebuild mibdio */
+	ndevs = (stats.dinfo)->numdevs;
+
+	if (ndevs != ondevs) {
+	
+		/* number of devices has changed. realloc mibdio */
 	
 		mibdio_free();
 
-		for(i = 0; i < (stats.dinfo)->numdevs; i++) {
+		for(i = 0; i < ndevs; i++) {
 			struct mibdio	*diop = NULL;
 
 			if ((diop = malloc(sizeof(*diop))) == NULL) {
@@ -121,11 +140,13 @@ update_dio_data(void)
 			INSERT_OBJECT_INT(diop, &mibdio_list);
 
 		}
+
+		ondevs = ndevs;
 	}
 
 	/* fill mibdio list with devstat data */
 
-	for(i = 0; i < (stats.dinfo)->numdevs; i++) {
+	for(i = 0; i < ndevs; i++) {
 		struct mibdio	*diop = NULL;
 		struct devstat	dev = (stats.dinfo)->devices[i];
 
@@ -229,4 +250,14 @@ void
 mibdio_fini (void)
 {
 	mibdio_free();
+}
+
+void
+mibdio_init(void) {
+	if ( devstat_checkversion(NULL) == -1) {
+		syslog(LOG_ERR, "userland and kernel devstat version mismatch: %s", __func__);
+		version_ok = 0;
+	} else {
+		version_ok = 1;
+	}
 }
