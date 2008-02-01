@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.10 2008/01/30 21:16:34 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.11 2008/02/01 21:55:27 mikolaj Exp $
  *
  */
 
@@ -51,25 +51,25 @@
 void sysctlval(const char *, u_long*);
 
 /* mibla.c */
-extern int init_mibla_list (void);
+extern void mibla_init (void);
 
 /* mibmem.c */
-extern int init_mibmemory (void);
+extern void mibmemory_init (void);
 
 /* mibss.c */
-extern int init_mibss (void);
+extern void mibss_init (void);
 extern void get_ss_data (void*);
 
 /* mibext.c */
-extern int init_mibext (struct lmodule *);
 extern void mibext_fini (void);
 extern void run_extCommands (void*);
 extern void run_extFixCmds (void*);
 
 /* mibdio,c */
 extern void mibdio_fini (void);
+extern void mibdio_init (void);
 
 /* mibversion.c */
-extern int init_mibversion (void);
+extern void mibversion_init (void);
 
 #endif /* SNMP_UCD_H */
