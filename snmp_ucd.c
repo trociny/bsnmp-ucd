@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.c,v 1.10 2008/02/01 21:55:27 mikolaj Exp $
+ * $Id: snmp_ucd.c,v 1.9.2.1 2008/02/02 18:38:33 mikolaj Exp $
  *
  */
 
