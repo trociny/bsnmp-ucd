@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibmem.c,v 1.4 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibmem.c,v 1.4.2.1 2008/02/02 18:38:33 mikolaj Exp $
  *
  */
 
@@ -124,9 +124,9 @@ static uint64_t last_mem_update;	/* ticks of the last mem data update */
 
 /* init all our memory objects */
 
-int
-init_mibmemory() {
-
+void
+mibmemory_init ()
+{
 	pagesize = getpagesize();
 	
 	kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, "kvm_open");
@@ -141,8 +141,6 @@ init_mibmemory() {
 	get_mem_data();
 
 	last_mem_update = get_ticks();
-
-	return (0);
 }
 
 static void
