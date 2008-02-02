@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibss.c,v 1.5 2008/01/30 21:16:34 mikolaj Exp $
+ * $Id: mibss.c,v 1.5.2.1 2008/02/02 18:38:33 mikolaj Exp $
  *
  */
 
@@ -202,15 +202,13 @@ get_ss_data(void* arg  __unused)
 
 /* init all our ss objects */
 
-int
-init_mibss() {
+void
+mibss_init() {
 
 	pagesize = getpagesize();
 
 	mibss.index = 1;
 	mibss.errorName = (const u_char *) "systemStats";
-	
-	return (0);
 }
 
 int

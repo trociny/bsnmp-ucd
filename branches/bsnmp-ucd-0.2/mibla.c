@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.5 2008/01/22 20:36:25 mikolaj Exp $
+ * $Id: mibla.c,v 1.5.2.1 2008/02/02 18:38:33 mikolaj Exp $
  *
  */
 
@@ -55,14 +55,13 @@ static uint64_t last_la_update;	/* ticks of the last la data update */
 
 static const u_char *la_names[] = {(const u_char *) "Load-1", (const u_char *) "Load-5", (const u_char *) "Load-15"};
 
-int
-init_mibla_list() {
+void
+mibla_init() {
 	int i;
 	double sys_la[3];
 
 	if (getloadavg(sys_la, 3) != 3) {
 		syslog(LOG_ERR, "getloadavg failed: %s: %m", __func__);
-		return -1;
 	}
 
 	for (i=0; i < 3; i++) {
@@ -77,8 +76,6 @@ init_mibla_list() {
 	}
 
 	last_la_update = get_ticks();
-
-	return (0);
 }
 
 static void

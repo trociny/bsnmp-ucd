@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.c,v 1.9 2008/01/30 21:16:34 mikolaj Exp $
+ * $Id: snmp_ucd.c,v 1.9.2.1 2008/02/02 18:38:33 mikolaj Exp $
  *
  */
 
@@ -47,16 +47,14 @@ ucd_init (struct lmodule *mod, int argc __unused, char *argv[] __unused)
 {
 	module = mod;
 
-	if (init_mibla_list() != 0)
-		return (-1);
+	mibla_init();
 
-	if (init_mibmemory() != 0)
-		return (-1);
+	mibmemory_init();
 
-	if (init_mibss() != 0)
-		return (-1);
+	mibss_init();
 
 	get_ss_data(NULL);
+
 	timer_ss = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
 				get_ss_data, NULL, mod);
 
@@ -66,8 +64,9 @@ ucd_init (struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	timer_fix = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
 				run_extFixCmds, NULL, mod);
 
-	if (init_mibversion() != 0)
-		return (-1);
+	mibdio_init();
+
+	mibversion_init();
 
 	return (0);
 }
