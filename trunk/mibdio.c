@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibdio.c,v 1.2 2008/02/01 21:54:39 mikolaj Exp $
+ * $Id: mibdio.c,v 1.3 2008/02/02 17:48:49 mikolaj Exp $
  *
  */
 
@@ -162,6 +162,11 @@ update_dio_data(void)
 		diop->nWrittenX = dev.bytes[DEVSTAT_WRITE];
 	}
 
+	/* free memory allocated by devstat_getdevs() */
+	
+	free((stats.dinfo)->mem_ptr);
+	(stats.dinfo)->mem_ptr = NULL;
+	
 	return 0;
 }
 
