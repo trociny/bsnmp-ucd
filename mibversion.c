@@ -53,7 +53,7 @@ void
 mibversion_init()
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-2 $";
+	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-2-0 $";
 	mibver.date = (const u_char*) "$Date: 2008/02/02 18:38:33 $";
 	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.3.2.1 2008/02/02 18:38:33 mikolaj Exp $";
 	mibver.configureOptions = (const u_char*) "";
