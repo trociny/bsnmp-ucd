@@ -1,7 +1,7 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.6 2008/01/30 21:16:34 mikolaj Exp $
+# $Id: Makefile,v 1.6.2.2 2008/05/11 12:10:28 mikolaj Exp $
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
@@ -21,7 +21,7 @@ WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wbad-function-cast -Wchar-subscripts -Winline \
 	-Wnested-externs -Wredundant-decls -std=c99
 
-CFLAGS +=	${WARNS} -O2 
+CFLAGS +=	${WARNS} 
 
 LIB=	snmp_${MOD}.la
 SHLIB_MAJOR=	1

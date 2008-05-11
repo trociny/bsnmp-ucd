@@ -23,7 +23,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibversion.c,v 1.3.2.1 2008/02/02 18:38:33 mikolaj Exp $
+ * $Id: mibversion.c,v 1.3.2.2 2008/05/11 12:10:28 mikolaj Exp $
+ *
+ */
+
+/*
+ * Change this serial when releasing new version just to update CVS varibles.
+ *
+ * serial = 1977
  *
  */
 
@@ -53,9 +60,9 @@ void
 mibversion_init()
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-2-0 $";
-	mibver.date = (const u_char*) "$Date: 2008/02/02 18:38:33 $";
-	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.3.2.1 2008/02/02 18:38:33 mikolaj Exp $";
+	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-2 $";
+	mibver.date = (const u_char*) "$Date: 2008/05/11 12:10:28 $";
+	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.3.2.2 2008/05/11 12:10:28 mikolaj Exp $";
 	mibver.configureOptions = (const u_char*) "";
 }
 

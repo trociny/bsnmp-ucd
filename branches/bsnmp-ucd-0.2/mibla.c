@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.5.2.1 2008/02/02 18:38:33 mikolaj Exp $
+ * $Id: mibla.c,v 1.5.2.2 2008/05/11 12:10:28 mikolaj Exp $
  *
  */
 
@@ -44,7 +44,6 @@ struct mibla {
 	u_char		load[UCDMAXLEN];
 	u_char		*config;
 	int32_t		loadInt;
-	u_char		loadFloat[UCDMAXLEN];
 	int32_t		errorFlag;
 	u_char		*errMessage;
 };
@@ -70,7 +69,6 @@ mibla_init() {
 		snprintf ((char *) mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
 		mibla[i].config = (u_char *) strdup(LACONFIG);
 		mibla[i].loadInt = (int) (100 * sys_la[i]);
-		snprintf ((char *) mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
 		mibla[i].errorFlag = 0;
 		mibla[i].errMessage = NULL;
 	}
@@ -94,7 +92,6 @@ update_la_data(void)
 			float crit;
 			snprintf ((char *) mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
 			mibla[i].loadInt = (int) (100 * sys_la[i]);
-			snprintf ((char *) mibla[i].loadFloat, UCDMAXLEN-1, "%f", sys_la[i]);
 			crit = strtof((char *) mibla[i].config, NULL);
 			mibla[i].errorFlag = ((crit > 0) && (sys_la[i] >= crit));
 		}
@@ -173,10 +170,6 @@ op_laTable(struct snmp_context * context __unused, struct snmp_value * value,
 
 		case LEAF_laLoadInt:
 			value->v.integer = mibla[i].loadInt;
-			break;
-
-		case LEAF_laLoadFloat:
-			ret = string_get(value, mibla[i].loadFloat, -1);
 			break;
 
 		case LEAF_laErrorFlag:
