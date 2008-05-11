@@ -69,7 +69,7 @@
             (3 laLoad OCTETSTRING GET)
             (4 laConfig OCTETSTRING GET)
             (5 laLoadInt INTEGER32 GET)
-            (6 laLoadFloat OCTETSTRING GET)
+#            (6 laLoadFloat OCTETSTRING GET)
             (100 laErrorFlag INTEGER32 GET)
             (101 laErrMessage OCTETSTRING GET)
           )
