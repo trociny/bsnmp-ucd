@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibss.c,v 1.6 2008/02/01 21:55:27 mikolaj Exp $
+ * $Id: mibss.c,v 1.5.2.2 2008/05/11 12:10:28 mikolaj Exp $
  *
  */
 
