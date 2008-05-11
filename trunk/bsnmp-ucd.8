@@ -23,7 +23,7 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\" $Id: bsnmp-ucd.8,v 1.5 2008/01/20 13:40:41 mikolaj Exp $
+.\" $Id: bsnmp-ucd.8,v 1.6 2008/05/11 12:04:06 mikolaj Exp $
 .\"
 .Dd December, 2007
 .Dt bsnmp-ucd 8
@@ -80,7 +80,7 @@ extCommand.0 = "/sbin/sysctl -n kern.lastpid"
 Note: Index order is important. Commands should be indexed beginning
 from 0 and without gaps.
 .Pp
-When program finished, the exit status is available via extResult mib
+When program has finished, the exit status is available via extResult mib
 and the first line of output is placed in extOutupt mib. The next time
 the program will be run only after some period of time (this period is
 set in sources and can be changed only by recompiling module).

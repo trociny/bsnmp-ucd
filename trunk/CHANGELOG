@@ -1,3 +1,9 @@
+bsnmp-ucd (0.2.1)
+
+  * nothing new iplemented, only some cleanup
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2008/05/11
+
 bsnmp-ucd (0.2.0)
 
   * UCD-DISKIO-MIB (without IOLA) implemented
