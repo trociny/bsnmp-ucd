@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibdio.c,v 1.3 2008/02/02 17:48:49 mikolaj Exp $
+ * $Id: mibdio.c,v 1.4 2009/05/04 13:27:07 mikolaj Exp $
  *
  */
 
@@ -151,7 +151,7 @@ update_dio_data(void)
 		struct devstat	dev = (stats.dinfo)->devices[i];
 
 		diop = find_dio(i+1);
-		snprintf((char *) diop->device, UCDMAXLEN-1, "%s%d",
+		snprintf((char *) diop->device, sizeof(diop->device), "%s%d",
 			 dev.device_name, dev.unit_number);
 			
 		diop->nRead     = (int32_t) dev.bytes[DEVSTAT_READ];

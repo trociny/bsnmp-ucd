@@ -1,3 +1,9 @@
+bsnmp-ucd (HEAD)
+
+  * cleanup and minor bug fixes
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2009/05/04
+
 bsnmp-ucd (0.2.1)
 
   * nothing new iplemented, only some cleanup
