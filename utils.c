@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: utils.c,v 1.1.1.1 2007/12/15 20:22:44 mikolaj Exp $
+ * $Id: utils.c,v 1.3 2009/05/04 14:01:34 mikolaj Exp $
  *
  */
 
@@ -40,4 +40,3 @@ sysctlval(const char *name, u_long *val) {
   	if (sysctlbyname(name, val, &len, NULL, 0) != 0)
 		syslog(LOG_WARNING, "%s: %m", __func__);
 }
-

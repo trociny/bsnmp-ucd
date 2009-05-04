@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibla.c,v 1.7 2008/05/11 12:04:06 mikolaj Exp $
+ * $Id: mibla.c,v 1.8 2009/05/04 13:27:07 mikolaj Exp $
  *
  */
 
@@ -66,7 +66,7 @@ mibla_init() {
 	for (i=0; i < 3; i++) {
 		mibla[i].index = i + 1;
 		mibla[i].name = la_names[i];
-		snprintf ((char *) mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
+		snprintf ((char *) mibla[i].load, sizeof(mibla[i].load), "%.2f", sys_la[i]);
 		mibla[i].config = (u_char *) strdup(LACONFIG);
 		mibla[i].loadInt = (int) (100 * sys_la[i]);
 		mibla[i].errorFlag = 0;
@@ -90,7 +90,7 @@ update_la_data(void)
 	
 		for (i = 0; i < 3; i++) {
 			float crit;
-			snprintf ((char *) mibla[i].load, UCDMAXLEN-1, "%.2f", sys_la[i]);
+			snprintf ((char *) mibla[i].load, sizeof(mibla[i].load), "%.2f", sys_la[i]);
 			mibla[i].loadInt = (int) (100 * sys_la[i]);
 			crit = strtof((char *) mibla[i].config, NULL);
 			mibla[i].errorFlag = ((crit > 0) && (sys_la[i] >= crit));

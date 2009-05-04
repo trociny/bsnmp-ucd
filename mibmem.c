@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibmem.c,v 1.5 2008/02/01 21:55:27 mikolaj Exp $
+ * $Id: mibmem.c,v 1.7 2009/05/04 14:01:34 mikolaj Exp $
  *
  */
 
@@ -71,24 +71,25 @@ static int pagesize;	/* initialized in init_memory() */
 
 #define pagetok(size) ((size) * (pagesize >> 10))
 
-static int
+static void
 swapmode(int *rettotal, int *retavail)
 {
-	int n;
 	struct kvm_swap swapary[1];
 
 	*rettotal = 0;
 	*retavail = 0;
 
-	n = kvm_getswapinfo(kd, swapary, 1, 0);
-	if (n < 0 || swapary[0].ksw_total == 0)
-		return (-1);
+	if (kvm_getswapinfo(kd, swapary, 1, 0) < 0) {
+		syslog(LOG_WARNING, "kvm_getswapinfo failed: %s: %m", __func__);
+		return;
+	}
 
 #define CONVERT(v)	((quad_t)(v) * pagesize / 1024)
 	*rettotal = CONVERT(swapary[0].ksw_total);
 	*retavail = CONVERT(swapary[0].ksw_total - swapary[0].ksw_used);
-	
-	return (0);
+#undef  CONVERT
+
+	return;
 }
 
 /* get memory data and fill mibmem */
@@ -101,8 +102,7 @@ static void get_mem_data (void) {
 	if (sysctlbyname("vm.vmtotal", &total, &total_size, NULL, 0) < 0)
 		syslog(LOG_ERR, "sysctl filed: %s: %m", __func__);
 
-	if (swapmode(&mibmem.totalSwap, &mibmem.availSwap) < 0)
-		syslog(LOG_WARNING, "swapmode failed: %s: %m", __func__);
+	swapmode(&mibmem.totalSwap, &mibmem.availSwap);
 
 	mibmem.swapError = (mibmem.availSwap <= mibmem.minimumSwap);
 
@@ -241,4 +241,3 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 
 	return (ret);
 };
-

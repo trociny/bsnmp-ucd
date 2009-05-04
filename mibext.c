@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.13 2008/01/31 20:13:16 mikolaj Exp $
+ * $Id: mibext.c,v 1.14 2009/05/04 13:27:07 mikolaj Exp $
  *
  */
 
@@ -181,7 +181,7 @@ run_extCommands(void* arg __unused)
 				}
 
 				/* read first line to output buffer*/
-				if (fgets((char*) msg.output, UCDMAXLEN-1, fp) != NULL) { /* we have some output */
+				if (fgets((char*) msg.output, sizeof(msg.output), fp) != NULL) { /* we have some output */
 					int	end;
 					
 					/* chop 'end of line' */
@@ -190,7 +190,7 @@ run_extCommands(void* arg __unused)
 						msg.output[end] = '\0';
 
 					/* just skip other lines */
-					while (fgets(null, UCDMAXLEN-1, fp) != NULL);
+					while (fgets(null, sizeof(null), fp) != NULL);
 				
 				}
 				
@@ -277,10 +277,10 @@ run_extCommands(void* arg __unused)
 				/* read returned something wrong */
 				/* mark command as abnormally finished */
 				extp->result = 127;
-				strncpy((char*) extp->output, "Exited abnormally!", UCDMAXLEN-1);
+				strncpy((char*) extp->output, "Exited abnormally!", sizeof(extp->output) - 1);
 			} else {
 				extp->result = msg.result;
-				strncpy((char*) extp->output, (char*) msg.output, UCDMAXLEN-1);
+				strncpy((char*) extp->output, (char*) msg.output, sizeof(extp->output) - 1);
 			}
 			
 			extp->_is_running = 0;
