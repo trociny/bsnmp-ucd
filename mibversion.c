@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibversion.c,v 1.3.2.2 2008/05/11 12:10:28 mikolaj Exp $
+ * $Id: mibversion.c,v 1.7 2009/05/04 14:01:34 mikolaj Exp $
  *
  */
 
@@ -36,6 +36,8 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "snmp_ucd.h"
 
@@ -47,7 +49,7 @@ struct mibversion {
 	uint32_t	index;		/* always 0 */
 	const u_char 	*tag;
 	const u_char 	*date;
-	u_char		*cDate;
+	u_char		cDate[UCDMAXLEN];
 	const u_char 	*ident;
 	const u_char 	*configureOptions;
 };
@@ -60,20 +62,24 @@ void
 mibversion_init()
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-2-1 $";
-	mibver.date = (const u_char*) "$Date: 2008/05/11 12:10:28 $";
-	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.3.2.2 2008/05/11 12:10:28 mikolaj Exp $";
+	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-2-2 $";
+	mibver.date = (const u_char*) "$Date: 2009/05/04 14:01:34 $";
+	mibver.ident = (const u_char*) "$Id: mibversion.c,v 1.7 2009/05/04 14:01:34 mikolaj Exp $";
 	mibver.configureOptions = (const u_char*) "";
 }
 
 static void
 set_cDate(void)
 {
-	struct timeval	tv;
 	time_t sec;
-	gettimeofday(&tv, NULL);
-	sec = (time_t) tv.tv_sec;
-	mibver.cDate = (u_char*) ctime(&sec);
+	int end;
+	
+	sec = time(NULL);
+	snprintf((char *) mibver.cDate, sizeof(mibver.cDate), "%s", ctime(&sec));
+	/* chop 'end of line' */
+	end = strlen((char*) mibver.cDate) - 1;
+	if ((end >= 0) && (mibver.cDate[end] == '\n'))
+		mibver.cDate[end] = '\0';
 }
 
 int

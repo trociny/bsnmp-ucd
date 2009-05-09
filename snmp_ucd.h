@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.10.2.2 2008/05/11 12:10:28 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.12 2009/05/04 13:27:07 mikolaj Exp $
  *
  */
 
@@ -48,7 +48,8 @@
 #define LACONFIG		"12.00"
 
 /* utils.c */
-void sysctlval(const char *, u_long*);
+extern int ucd_debug;
+extern void sysctlval(const char *, u_long*);
 
 /* mibla.c */
 extern void mibla_init (void);
