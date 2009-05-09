@@ -1,8 +1,10 @@
-bsnmp-ucd (HEAD)
+bsnmp-ucd (0.2.2)
 
-  * cleanup and minor bug fixes
+  * some cleanup
 
--- Mikolaj Golub <to.my.trociny@gmail.com> 2009/05/04
+  * do not log error in case the swap is not used on the system
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2009/05/09
 
 bsnmp-ucd (0.2.1)
 
