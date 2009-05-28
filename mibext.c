@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.14 2009/05/04 13:27:07 mikolaj Exp $
+ * $Id: mibext.c,v 1.13.2.2 2009/05/28 20:37:31 mikolaj Exp $
  *
  */
 
@@ -295,21 +295,6 @@ run_extCommands(void* arg __unused)
 	}
 }
 
-/* get max fd opened */
-
-static int
-get_fdmax(void) {
-	int fd;
-	/* FIXME: may be there is more simple way to find out max fd */
-	fd = open(_PATH_DEVNULL, O_RDONLY);
-	if (fd < 0) {
-		syslog(LOG_ERR, "Can't open %s: %s: %m", _PATH_DEVNULL, __func__);
-		return -1;
-	}
-	close(fd);
-	return fd-1;
-}
-
 /* run fix commands */
 
 void
@@ -344,11 +329,10 @@ run_extFixCmds(void* arg __unused)
 		/* execute the command in the child process */
 		if (pid==0) {
 
-			int	fd, fdmax;
+			int	fd;
 			
 			/* close all descriptors except stdio */
-			fdmax = get_fdmax();
-			for (fd = 3; fd <= fdmax; fd++)
+			for (fd = 3; fd <= getdtablesize(); fd++)
 				close(fd);
 
 			/* fork again */
