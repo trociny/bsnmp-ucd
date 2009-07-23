@@ -46,22 +46,22 @@
             (103 extErrFixCmd OCTETSTRING GET)
           )
         )
-#        (9 dskTable
-#          (1 dskEntry : INTEGER op_dskTable
-#            (1 dskIndex INTEGER GET)
-#            (2 dskPath OCTETSTRING GET)
-#            (3 dskDevice OCTETSTRING GET)
+        (9 dskTable
+          (1 dskEntry : INTEGER op_dskTable
+            (1 dskIndex INTEGER GET)
+            (2 dskPath OCTETSTRING GET)
+            (3 dskDevice OCTETSTRING GET)
 #            (4 dskMinimum INTEGER32 GET)
 #            (5 dskMinPercent INTEGER32 GET)
-#            (6 dskTotal INTEGER32 GET)
-#            (7 dskAvail INTEGER32 GET)
-#            (8 dskUsed INTEGER32 GET)
-#            (9 dskPercent INTEGER32 GET)
-#            (10 dskPercentNode INTEGER32 GET)
+            (6 dskTotal INTEGER32 GET)
+            (7 dskAvail INTEGER32 GET)
+            (8 dskUsed INTEGER32 GET)
+            (9 dskPercent INTEGER32 GET)
+            (10 dskPercentNode INTEGER32 GET)
 #            (100 dskErrorFlag INTEGER32 GET)
 #            (101 dskErrorMsg OCTETSTRING GET)
-#          )
-#        )
+          )
+        )
         (10 laTable
           (1 laEntry : INTEGER op_laTable
             (1 laIndex INTEGER GET)

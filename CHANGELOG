@@ -1,3 +1,11 @@
+bsnmp-ucd (0.X.X)
+
+  * part of dskTable MIB implemented (submitted by kuriyama.bsd at gmail.com)
+
+  * some cleanup
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> XXXX/XX/XX
+
 bsnmp-ucd (0.2.2)
 
   * some cleanup
