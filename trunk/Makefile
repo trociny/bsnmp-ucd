@@ -1,10 +1,11 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.6.2.4 2009/07/23 19:19:54 mikolaj Exp $
+# $Id: Makefile,v 1.6.2.5 2009/07/23 19:38:00 mikolaj Exp $
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
+	mibdisk.c \
 	mibdio.c mibext.c mibla.c mibmem.c mibss.c mibversion.c
 INCS=	snmp_${MOD}.h
 DEFS=	${MOD}_tree.def

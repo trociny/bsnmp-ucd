@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: snmp_ucd.h,v 1.12 2009/05/04 13:27:07 mikolaj Exp $
+ * $Id: snmp_ucd.h,v 1.10.2.4 2009/07/23 19:38:00 mikolaj Exp $
  *
  */
 
@@ -66,7 +66,11 @@ extern void mibext_fini (void);
 extern void run_extCommands (void*);
 extern void run_extFixCmds (void*);
 
-/* mibdio,c */
+/* mibdisk,c */
+extern void mibdisk_fini (void);
+extern void mibdisk_init (void);
+
+/* mibdio.c */
 extern void mibdio_fini (void);
 extern void mibdio_init (void);
 
