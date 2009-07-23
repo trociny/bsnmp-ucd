@@ -1,7 +1,7 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.7 2008/02/05 20:51:48 mikolaj Exp $
+# $Id: Makefile,v 1.6.2.4 2009/07/23 19:19:54 mikolaj Exp $
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
@@ -30,11 +30,11 @@ SHLIB_MINOR=	0
 LIBTOOL=	libtool
 GENSNMPTREE=	gensnmptree
 
-LOCALBASE ?=	/usr/local
+PREFIX ?=	/usr/local
 
-LIBDIR =	${LOCALBASE}/lib
-MANDIR = 	${LOCALBASE}/man
-EXAMPLEDIR =	${LOCALBASE}/share/examples
+LIBDIR =	${PREFIX}/lib
+MANDIR = 	${PREFIX}/man
+EXAMPLEDIR =	${PREFIX}/share/examples
 
 CLEANFILES +=	*.la *.lo *.o .libs
 CLEANFILES +=	${MOD}_oid.h ${MOD}_tree.c ${MOD}_tree.h
