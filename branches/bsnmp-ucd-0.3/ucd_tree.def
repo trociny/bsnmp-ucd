@@ -1,0 +1,219 @@
+(1 internet
+  (4 private
+    (1 enterprises
+      (2021 ucdavis
+#        (2 prTable
+#          (1 prEntry : INTEGER op_prTable
+#            (1 prIndex INTEGER GET)
+#            (2 prNames OCTETSTRING GET)
+#            (3 prMin INTEGER32 GET)
+#            (4 prMax INTEGER32 GET)
+#            (5 prCount INTEGER32 GET)
+#            (100 prErrorFlag INTEGER32 GET)
+#            (101 prErrMessage OCTETSTRING GET)
+#            (102 prErrFix INTEGER32 GET SET)
+#            (103 prErrFixCmd OCTETSTRING GET)
+#          )
+#        )
+        (4 memory
+          (1 memIndex INTEGER32 op_memory GET)
+          (2 memErrorName OCTETSTRING op_memory GET)
+          (3 memTotalSwap INTEGER32 op_memory GET)
+          (4 memAvailSwap INTEGER32 op_memory GET)
+          (5 memTotalReal INTEGER32 op_memory GET)
+          (6 memAvailReal INTEGER32 op_memory GET)
+# No idea about these
+#          (7 memTotalSwapTXT INTEGER32 op_memory GET)
+#          (8 memAvailSwapTXT INTEGER32 op_memory GET)
+#          (9 memTotalRealTXT INTEGER32 op_memory GET)
+#          (10 memAvailRealTXT INTEGER32 op_memory GET)
+          (11 memTotalFree INTEGER32 op_memory GET)
+          (12 memMinimumSwap INTEGER32 op_memory GET)
+          (13 memShared INTEGER32 op_memory GET)
+          (14 memBuffer INTEGER32 op_memory GET)
+          (15 memCached INTEGER32 op_memory GET)
+          (100 memSwapError INTEGER32 op_memory GET)
+          (101 memSwapErrorMsg OCTETSTRING op_memory GET)
+        )
+        (8 extTable
+          (1 extEntry : INTEGER op_extTable
+            (1 extIndex INTEGER GET)
+            (2 extNames OCTETSTRING GET)
+            (3 extCommand OCTETSTRING GET)
+            (100 extResult INTEGER32 GET)
+            (101 extOutput OCTETSTRING GET)
+            (102 extErrFix INTEGER32 GET SET)
+            (103 extErrFixCmd OCTETSTRING GET)
+          )
+        )
+        (9 dskTable
+          (1 dskEntry : INTEGER op_dskTable
+            (1 dskIndex INTEGER GET)
+            (2 dskPath OCTETSTRING GET)
+            (3 dskDevice OCTETSTRING GET)
+#            (4 dskMinimum INTEGER32 GET)
+#            (5 dskMinPercent INTEGER32 GET)
+            (6 dskTotal INTEGER32 GET)
+            (7 dskAvail INTEGER32 GET)
+            (8 dskUsed INTEGER32 GET)
+            (9 dskPercent INTEGER32 GET)
+            (10 dskPercentNode INTEGER32 GET)
+#            (100 dskErrorFlag INTEGER32 GET)
+#            (101 dskErrorMsg OCTETSTRING GET)
+          )
+        )
+        (10 laTable
+          (1 laEntry : INTEGER op_laTable
+            (1 laIndex INTEGER GET)
+            (2 laNames OCTETSTRING GET)
+            (3 laLoad OCTETSTRING GET)
+            (4 laConfig OCTETSTRING GET)
+            (5 laLoadInt INTEGER32 GET)
+#            (6 laLoadFloat OCTETSTRING GET)
+            (100 laErrorFlag INTEGER32 GET)
+            (101 laErrMessage OCTETSTRING GET)
+          )
+        )
+        (11 systemStats
+          (1 ssIndex INTEGER32 op_systemStats GET)
+          (2 ssErrorName OCTETSTRING op_systemStats GET)
+          (3 ssSwapIn INTEGER32 op_systemStats GET)
+          (4 ssSwapOut INTEGER32 op_systemStats GET)
+#          (5 ssIOSent INTEGER32 op_systemStats GET)
+#          (6 ssIOReceive INTEGER32 op_systemStats GET)
+          (7 ssSysInterrupts INTEGER32 op_systemStats GET)
+          (8 ssSysContext INTEGER32 op_systemStats GET)
+          (9 ssCpuUser INTEGER32 op_systemStats GET)
+          (10 ssCpuSystem INTEGER32 op_systemStats GET)
+          (11 ssCpuIdle INTEGER32 op_systemStats GET)
+          (50 ssCpuRawUser COUNTER op_systemStats GET)
+          (51 ssCpuRawNice COUNTER op_systemStats GET)
+          (52 ssCpuRawSystem COUNTER op_systemStats GET)
+          (53 ssCpuRawIdle COUNTER op_systemStats GET)
+          (54 ssCpuRawWait COUNTER op_systemStats GET)
+          (55 ssCpuRawKernel COUNTER op_systemStats GET)
+          (56 ssCpuRawInterrupt COUNTER op_systemStats GET)
+#          (57 ssIORawSent COUNTER op_systemStats GET)
+#          (58 ssIORawReceived COUNTER op_systemStats GET)
+          (59 ssRawInterrupts COUNTER op_systemStats GET)
+          (60 ssRawContexts COUNTER op_systemStats GET)
+          (61 ssCpuRawSoftIRQ COUNTER op_systemStats GET)
+          (62 ssRawSwapIn COUNTER op_systemStats GET)
+          (63 ssRawSwapOut COUNTER op_systemStats GET)
+        )
+#        (12 ucdInternal
+#        )
+        (13 ucdExperimental
+          (15 ucdDiskIOMIB
+            (1 diskIOTable
+              (1 diskIOEntry : INTEGER op_diskIOTable
+                (1 diskIOIndex INTEGER GET)
+                (2 diskIODevice OCTETSTRING GET)
+                (3 diskIONRead COUNTER GET)
+                (4 diskIONWritten COUNTER GET)
+                (5 diskIOReads COUNTER GET)
+                (6 diskIOWrites COUNTER GET)
+#                (9 diskIOLA1 INTEGER GET)
+#                (10 diskIOLA5 INTEGER GET)
+#                (11 diskIOLA15 INTEGER GET)
+                (12 diskIONReadX COUNTER64 GET)
+                (13 diskIONWrittenX COUNTER64 GET)
+              )
+            )
+          )
+        )
+#        (15 fileTable
+#          (1 fileEntry : INTEGER op_fileTable
+#            (1 fileIndex INTEGER GET)
+#            (2 fileName OCTETSTRING GET)
+#            (3 fileSize INTEGER32 GET)
+#            (4 fileMax INTEGER32 GET)
+#            (100 fileErrorFlag INTEGER GET)
+#            (101 fileErrorMsg OCTETSTRING GET)
+#          )
+#        )
+#        (16 logMatch
+#          (1 logMatchMaxEntries INTEGER32 op_logMatch GET)
+#          (2 logMatchTable
+#            (1 logMatchEntry : INTEGER op_logMatchTable
+#              (1 logMatchIndex INTEGER GET)
+#              (2 logMatchName OCTETSTRING GET)
+#              (3 logMatchFilename OCTETSTRING GET)
+#              (4 logMatchRegEx OCTETSTRING GET)
+#              (5 logMatchGlobalCounter COUNTER GET)
+#              (6 logMatchGlobalCount INTEGER32 GET)
+#              (7 logMatchCurrentCounter COUNTER GET)
+#              (8 logMatchCurrentCount INTEGER32 GET)
+#              (9 logMatchCounter COUNTER GET)
+#              (10 logMatchCount INTEGER32 GET)
+#              (11 logMatchCycle INTEGER32 GET)
+#              (100 logMatchErrorFlag INTEGER GET)
+#              (101 logMatchRegExCompilation OCTETSTRING GET)
+#            )
+#          )
+#        )
+        (100 version
+          (1 versionIndex INTEGER32 op_version GET)
+          (2 versionTag OCTETSTRING op_version GET)
+          (3 versionDate OCTETSTRING op_version GET)
+          (4 versionCDate OCTETSTRING op_version GET)
+          (5 versionIdent OCTETSTRING op_version GET)
+          (6 versionConfigureOptions OCTETSTRING op_version GET)
+#          (10 versionClearCache INTEGER32 op_version GET SET)
+#          (11 versionUpdateConfig INTEGER32 op_version GET SET)
+#          (12 versionRestartAgent INTEGER32 op_version GET SET)
+#          (13 versionSavePersistentData INTEGER32 op_version GET SET)
+#          (20 versionDoDebugging INTEGER32 op_version GET SET)
+        )
+#        (101 snmperrs
+#          (1 snmperrIndex INTEGER32 op_snmperrs GET)
+#          (2 snmperrNames OCTETSTRING op_snmperrs GET)
+#          (100 snmperrErrorFlag INTEGER32 op_snmperrs GET)
+#          (101 snmperrErrMessage OCTETSTRING op_snmperrs GET)
+#        )
+#        (102 mrTable
+#          (1 mrEntry : OID op_mrTable
+#            (1 mrIndex OID GET)
+#            (2 mrModuleName OCTETSTRING GET)
+#          )
+#        )
+#        (250 ucdSnmpAgent
+#          (1 hpux9
+#          )
+#          (2 sunos4
+#          )
+#          (3 solaris
+#          )
+#          (4 osf
+#          )
+#          (5 ultrix
+#          )
+#          (6 hpux10
+#          )
+#          (7 netbsd1
+#          )
+#          (8 freebsd
+#          )
+#          (9 irix
+#          )
+#          (10 linux
+#          )
+#          (11 bsdi
+#          )
+#          (12 openbsd
+#          )
+#          (13 win32
+#          )
+#          (14 hpux11
+#          )
+#          (255 unknown
+#          )
+#        )
+#        (251 ucdTraps
+#          (1 ucdStart OID op_ucdStart)
+#          (2 ucdShutdown OID op_ucdShutdown)
+#        )
+      )
+    )
+  )
+)
