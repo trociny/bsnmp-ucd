@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: utils.c,v 1.3 2009/05/04 14:01:34 mikolaj Exp $
+ * $Id: utils.c,v 1.1.1.1.4.1 2009/05/09 16:16:38 mikolaj Exp $
  *
  */
 
