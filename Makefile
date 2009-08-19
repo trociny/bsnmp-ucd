@@ -1,7 +1,7 @@
 # Copyright (c) 2007 Mikolaj Golub
 # All rights reserved.
 #
-# $Id: Makefile,v 1.6.2.5 2009/07/23 19:38:00 mikolaj Exp $
+# $Id$
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \

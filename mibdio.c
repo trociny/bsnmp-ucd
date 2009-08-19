@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibdio.c,v 1.1.2.3 2009/05/09 16:16:38 mikolaj Exp $
+ * $Id$
  *
  */
 
