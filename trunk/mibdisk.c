@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibdisk.c,v 1.1.2.1 2009/07/23 19:41:33 mikolaj Exp $
+ * $Id$
  *
  */
 

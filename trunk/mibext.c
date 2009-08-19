@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibext.c,v 1.13.2.2 2009/05/28 20:37:31 mikolaj Exp $
+ * $Id$
  *
  */
 
