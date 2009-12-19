@@ -2,19 +2,19 @@
   (4 private
     (1 enterprises
       (2021 ucdavis
-#        (2 prTable
-#          (1 prEntry : INTEGER op_prTable
-#            (1 prIndex INTEGER GET)
-#            (2 prNames OCTETSTRING GET)
-#            (3 prMin INTEGER32 GET)
-#            (4 prMax INTEGER32 GET)
-#            (5 prCount INTEGER32 GET)
-#            (100 prErrorFlag INTEGER32 GET)
-#            (101 prErrMessage OCTETSTRING GET)
-#            (102 prErrFix INTEGER32 GET SET)
-#            (103 prErrFixCmd OCTETSTRING GET)
-#          )
-#        )
+        (2 prTable
+          (1 prEntry : INTEGER op_prTable
+            (1 prIndex INTEGER GET)
+            (2 prNames OCTETSTRING GET)
+            (3 prMin INTEGER32 GET)
+            (4 prMax INTEGER32 GET)
+            (5 prCount INTEGER32 GET)
+            (100 prErrorFlag INTEGER32 GET)
+            (101 prErrMessage OCTETSTRING GET)
+            (102 prErrFix INTEGER32 GET SET)
+            (103 prErrFixCmd OCTETSTRING GET)
+          )
+        )
         (4 memory
           (1 memIndex INTEGER32 op_memory GET)
           (2 memErrorName OCTETSTRING op_memory GET)

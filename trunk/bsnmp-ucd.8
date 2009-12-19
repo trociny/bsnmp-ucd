@@ -102,9 +102,17 @@ extCommand.1 = "/usr/local/etc/rc.d/apache status"
 extErrFix.1 = 1
 extErrFixCmd.1 = "/usr/local/etc/rc.d/apache restart"
 .Ed
+.Pp
+Also, it is possible to monitor processes using prTable. For example:
+.Bd -literal -offset indent
+prNames.0 = "httpd"
+prMin.0 = 3
+prMax.0 = 100
+
+prErrFix.0 = 1
+prErrFixCmd.0 = "/usr/local/etc/rc.d/apache22 restart"
+.Ed
 .Sh SEE ALSO
 .Xr bsnmpd 1 
 .Sh AUTHOR
 .An Mikolaj Golub
-.Sh BUGS
-extTable is rather experimental feature at this moment.

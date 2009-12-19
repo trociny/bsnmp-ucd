@@ -39,7 +39,7 @@ static const struct asn_oid oid_ucdavis = OIDX_ucdavis;
 static u_int ucdavis_index = 0;
 
 /* timer id */
-static void	*timer_ss, *timer_ext, *timer_fix;
+static void	*timer_ss, *timer_ext, *timer_fix, *timer_pr, *timer_prfix;
 
 /* the initialisation function */
 static int
@@ -64,6 +64,12 @@ ucd_init (struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	timer_fix = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
 				run_extFixCmds, NULL, mod);
 
+	timer_pr = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
+				run_prCommands, NULL, mod);
+
+	timer_prfix = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
+				run_prFixCmds, NULL, mod);
+
 	mibdisk_init();
 
 	mibdio_init();
@@ -87,6 +93,8 @@ ucd_fini (void)
 	timer_stop(timer_ss);
 	timer_stop(timer_ext);
 	timer_stop(timer_fix);
+	timer_stop(timer_pr);
+	timer_stop(timer_prfix);
 	mibext_fini();
 	mibdisk_fini();
 	mibdio_fini();
