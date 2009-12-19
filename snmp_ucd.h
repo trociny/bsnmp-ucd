@@ -74,6 +74,11 @@ extern void mibdisk_init (void);
 extern void mibdio_fini (void);
 extern void mibdio_init (void);
 
+/* mibpr.c */
+extern void mibpr_fini (void);
+extern void run_prCommands (void*);
+extern void run_prFixCmds (void*);
+
 /* mibversion.c */
 extern void mibversion_init (void);
 
