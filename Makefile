@@ -5,8 +5,8 @@
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
-	mibdisk.c \
-	mibdio.c mibext.c mibla.c mibmem.c mibss.c mibversion.c
+	mibdio.c mibdisk.c \
+	mibext.c mibla.c mibmem.c mibpr.c mibss.c mibversion.c
 INCS=	snmp_${MOD}.h
 DEFS=	${MOD}_tree.def
 MAN8=	bsnmp-${MOD}.8

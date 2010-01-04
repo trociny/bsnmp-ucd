@@ -30,7 +30,7 @@
 /*
  * Change this serial when releasing new version just to update CVS varibles.
  *
- * serial = 1978
+ * serial = 1979
  *
  */
 
