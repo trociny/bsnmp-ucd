@@ -1,10 +1,9 @@
-bsnmp-ucd (XXX)
+bsnmp-ucd (0.3.1)
 
   * UCD-SNMP-MIB::prTable MIB implemented (submitted by kuriyama at
     freebsd.org)
 
--- Mikolaj Golub <to.my.trociny@gmail.com> XXXX/XX/XX
-
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2010/01/04
 
 bsnmp-ucd (0.3.0)
 
