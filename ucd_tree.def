@@ -97,7 +97,7 @@
 #          (58 ssIORawReceived COUNTER op_systemStats GET)
           (59 ssRawInterrupts COUNTER op_systemStats GET)
           (60 ssRawContexts COUNTER op_systemStats GET)
-          (61 ssCpuRawSoftIRQ COUNTER op_systemStats GET)
+#          (61 ssCpuRawSoftIRQ COUNTER op_systemStats GET)
           (62 ssRawSwapIn COUNTER op_systemStats GET)
           (63 ssRawSwapOut COUNTER op_systemStats GET)
         )
