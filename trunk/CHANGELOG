@@ -6,6 +6,8 @@ bsnmp-ucd (0.X.X)
     looks like FreeBSD does not provide a such counter (submitted by
     osharoiko at gmail com).
 
+  * Replace UCD-SNMP-MIB.txt with newer version (from net-snmp-5.5).
+
 -- Mikolaj Golub <to.my.trociny@gmail.com> 20XX/XX/XX
 
 bsnmp-ucd (0.3.1)
