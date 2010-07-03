@@ -8,7 +8,10 @@ bsnmp-ucd (0.X.X)
 
   * Replace UCD-SNMP-MIB.txt with newer version (from net-snmp-5.5).
 
--- Mikolaj Golub <to.my.trociny@gmail.com> 20XX/XX/XX
+  * Add support for disks >2Tb in diskTable (submitted by nexther0 at
+    gmail com).
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2010/XX/XX
 
 bsnmp-ucd (0.3.1)
 
