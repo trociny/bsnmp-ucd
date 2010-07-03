@@ -39,14 +39,18 @@
 
 #include "snmp_ucd.h"
 
+#define MAX_INT_32 0x7fffffff
+#define MAX_UINT_32 0xffffffff
+
+
 struct mibdisk {
 	TAILQ_ENTRY(mibdisk)	link;
 	int32_t			index;
 	u_char			path[MNAMELEN];
 	u_char			device[MNAMELEN];
-	int32_t			total;
-	int32_t			avail;
-	int32_t			used;
+	uint64_t		total;
+	uint64_t		avail;
+	uint64_t		used;
 	int32_t			percent;
 	int32_t			percentNode;
 };
@@ -219,15 +223,48 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 			break;
 
 		case LEAF_dskTotal:
-			value->v.integer = dp->total;
+			if (dp->total > MAX_INT_32)
+				value->v.integer = MAX_INT_32;
+			else
+				value->v.integer = dp->total;
+			break;
+
+		case LEAF_dskTotalLow:
+			value->v.uint32 = dp->total & MAX_UINT_32;
+			break;
+
+		case LEAF_dskTotalHigh:
+			value->v.uint32 = dp->total >> 32;
 			break;
 
 		case LEAF_dskAvail:
-			value->v.integer = dp->avail;
+			if (dp->avail > MAX_INT_32)
+				value->v.integer = MAX_INT_32;
+			else
+				value->v.integer = dp->avail;
+			break;
+
+		case LEAF_dskAvailLow:
+			value->v.uint32 = dp->avail & MAX_UINT_32;
+			break;
+
+		case LEAF_dskAvailHigh:
+			value->v.uint32 = dp->avail >> 32;
 			break;
 
 		case LEAF_dskUsed:
-			value->v.integer = dp->used;
+			if (dp->used > MAX_INT_32)
+				value->v.integer = MAX_INT_32;
+			else
+				value->v.integer = dp->used;
+			break;
+
+		case LEAF_dskUsedLow:
+			value->v.uint32 = dp->used & MAX_UINT_32;
+			break;
+
+		case LEAF_dskUsedHigh:
+			value->v.uint32 = dp->used >> 32;
 			break;
 
 		case LEAF_dskPercent:
