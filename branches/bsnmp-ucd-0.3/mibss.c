@@ -63,7 +63,6 @@ struct mibss {
 	uint32_t	cpuRawInterrupt;
 	uint32_t	rawInterrupts;
 	uint32_t	rawContexts;
-	uint32_t	cpuRawSoftIRQ;
 	uint32_t	rawSwapIn;
 	uint32_t	rawSwapOut;
 };
@@ -159,8 +158,6 @@ get_ss_data(void* arg  __unused)
 	mibss.rawInterrupts = (uint32_t) val;
 	sysctlval("vm.stats.sys.v_swtch", &val);
 	mibss.rawContexts = (uint32_t) val;
-	sysctlval("vm.stats.sys.v_soft", &val);
-	mibss.cpuRawSoftIRQ = (uint32_t) val;
 
 	current = get_ticks();
 	if (current > last_update) {
@@ -292,9 +289,6 @@ op_systemStats(struct snmp_context *context __unused, struct snmp_value *value,
 			break;
 		case LEAF_ssRawContexts:
 			value->v.uint32 = mibss.rawContexts;
-			break;
-		case LEAF_ssCpuRawSoftIRQ:
-			value->v.uint32 = mibss.cpuRawSoftIRQ;
 			break;
 		case LEAF_ssRawSwapIn:
 			value->v.uint32 = mibss.rawSwapIn;
