@@ -1,3 +1,18 @@
+bsnmp-ucd (0.3.2)
+
+  * Remove ssCpuRawSoftIRQ MIB: it showed vm.stats.sys.v_soft (number
+    of software interrupts), but according to MIB description it
+    should have shown time spent to process software interrupts and it
+    looks like FreeBSD does not provide a such counter (submitted by
+    osharoiko at gmail com).
+
+  * Replace UCD-SNMP-MIB.txt with newer version (from net-snmp-5.5).
+
+  * Add support for disks >2Tb in diskTable (submitted by nexther0 at
+    gmail com).
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2010/07/18
+
 bsnmp-ucd (0.3.1)
 
   * UCD-SNMP-MIB::prTable MIB implemented (submitted by kuriyama at
