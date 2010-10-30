@@ -27,18 +27,27 @@
  *
  */
 
-#include <syslog.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/resource.h>
-#include <unistd.h>
+
 #include <paths.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "snmp_ucd.h"
+
+/*
+ * We update statistics every UPDATE_INTERVAL seconds (< 1 minute) but
+ * want to have values averaged over the last minute. Thus we store
+ * the last RING_SIZE values in a ring buffer.
+ */
+
+#define AVG_INTERVAL	6000				/* averaging interval in ticks */
+#define RING_SIZE	AVG_INTERVAL / UPDATE_INTERVAL	/* buffer size to store cpu updates */
 
 /*
  * mibmemory structures and functions
@@ -131,6 +140,18 @@ percentages(int cnt, int *out, register long *new, register long *old, long *dif
     return(total_change);
 }
 
+/* init all our ss objects */
+
+void
+mibss_init() {
+
+	pagesize = getpagesize();
+
+	memset(&mibss, 0, sizeof(mibss));
+	mibss.index = 1;
+	mibss.errorName = (const u_char *) "systemStats";
+}
+
 void
 get_ss_data(void* arg  __unused)
 {
@@ -140,12 +161,13 @@ get_ss_data(void* arg  __unused)
 	static int32_t oswtch = -1;
 	static uint64_t last_update = 0;
 	uint64_t current;
+	int64_t delta;
 
-	/* for cpu stats */
 	static int	cpu_states[CPUSTATES];
 	static long	cp_time[CPUSTATES];
-	static long	cp_old[CPUSTATES];
-	static long	cp_diff[CPUSTATES];
+	static long	cp_old[RING_SIZE][CPUSTATES];
+	static long	cp_diff[RING_SIZE][CPUSTATES];
+	static int	cnt = 0;
 	size_t		cp_time_size = sizeof(cp_time);
 
 	u_long		val;
@@ -158,54 +180,41 @@ get_ss_data(void* arg  __unused)
 	mibss.rawInterrupts = (uint32_t) val;
 	sysctlval("vm.stats.sys.v_swtch", &val);
 	mibss.rawContexts = (uint32_t) val;
-
-	current = get_ticks();
-	if (current > last_update) {
-		if (oswappgsin < 0) { /* first interval */
-			mibss.swapIn  = 0;
-			mibss.swapOut = 0;
-			mibss.sysInterrupts = 0;
-			mibss.sysContext = 0;
-		} else {
-			mibss.swapIn = pagetok(((mibss.rawSwapIn - oswappgsin))) / (current-last_update);
-			mibss.swapOut = pagetok(((mibss.rawSwapOut - oswappgsout))) / (current-last_update);
-			mibss.sysInterrupts = (mibss.rawInterrupts - ointr) / (current-last_update);
-			mibss.sysContext = (mibss.rawContexts - oswtch) / (current-last_update);
-		}
-		oswappgsin  = mibss.rawSwapIn;
-		oswappgsout = mibss.rawSwapOut;
-		ointr = mibss.rawInterrupts;
-		oswtch = mibss.rawContexts;
-
-		last_update = current;
-	}
-
+	
 	if (sysctlbyname("kern.cp_time", &cp_time, &cp_time_size, NULL, 0) < 0)
 		syslog(LOG_ERR, "sysctl failed: %s: %m", __func__);
-
 	/* convert cp_time counts to percentages * 10 */
-	percentages(CPUSTATES, cpu_states, cp_time, cp_old, cp_diff);
+	percentages(CPUSTATES, cpu_states, cp_time,
+	    cp_old[cnt % RING_SIZE], cp_diff[cnt % RING_SIZE]);
 
-	mibss.cpuUser = cpu_states[CP_USER] / 10;
-	mibss.cpuSystem = (cpu_states[CP_SYS] + cpu_states[CP_INTR]) / 10;
-	mibss.cpuIdle = cpu_states[CP_IDLE] / 10;
+	current = get_ticks();	
+	delta = current - last_update;
+	if (last_update > 0 && delta > 0) {
+		mibss.swapIn = pagetok(((mibss.rawSwapIn - oswappgsin))) / (current-last_update);
+		mibss.swapOut = pagetok(((mibss.rawSwapOut - oswappgsout))) / (current-last_update);
+		mibss.sysInterrupts = (mibss.rawInterrupts - ointr) / (current-last_update);
+		mibss.sysContext = (mibss.rawContexts - oswtch) / (current-last_update);
+
+#define	_round(x) ((x) / 10 + (((x) % 10) >= 5 ? 1 : 0))
+		mibss.cpuUser = _round(cpu_states[CP_USER]);
+		mibss.cpuSystem = _round(cpu_states[CP_SYS] + cpu_states[CP_INTR]);
+		mibss.cpuIdle = _round(cpu_states[CP_IDLE]);
+#undef _round
+	}
+	
 	mibss.cpuRawUser = cp_time[CP_USER];
 	mibss.cpuRawNice = cp_time[CP_NICE];
 	mibss.cpuRawSystem = cp_time[CP_SYS] + cp_time[CP_INTR];
 	mibss.cpuRawIdle = cp_time[CP_IDLE];
 	mibss.cpuRawKernel = cp_time[CP_SYS];
 	mibss.cpuRawInterrupt = cp_time[CP_INTR];
-}
 
-/* init all our ss objects */
-
-void
-mibss_init() {
-
-	pagesize = getpagesize();
-
-	mibss.index = 1;
-	mibss.errorName = (const u_char *) "systemStats";
+	oswappgsin  = mibss.rawSwapIn;
+	oswappgsout = mibss.rawSwapOut;
+	ointr  = mibss.rawInterrupts;
+	oswtch = mibss.rawContexts;	
+	last_update = current;
+	cnt++;
 }
 
 int
