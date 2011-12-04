@@ -102,10 +102,10 @@ update_disk_data(void)
 	struct devinfo	dinfo;
 
 	if (!version_ok)
-		return -1;
+		return (-1);
 
 	if ((get_ticks() - last_disk_update) < UPDATE_INTERVAL)
-		return 1;
+		return (1);
 
 	last_disk_update = get_ticks();
 
@@ -119,22 +119,24 @@ update_disk_data(void)
 
 	if (res == -1) {
 		syslog(LOG_ERR, "devstat_getdevs failed: %s: %m", __func__);
-		return -1;
+		return (-1);
 	}
 
 	ndevs = mntsize;
 
 	if (ndevs != ondevs) {
-		/* number of devices has changed. realloc mibdio */
-
+		/*
+		 * Number of devices has changed. Realloc mibdio.
+		 */
 		mibdisk_free();
 
 		for(i = 0; i < ndevs; i++) {
 			struct mibdisk	*dp = NULL;
 
-			if ((dp = malloc(sizeof(*dp))) == NULL) {
+			dp = malloc(sizeof(*dp));
+			if (dp == NULL) {
 				syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
-				return -1;
+				return (-1);
 			}
 
 			memset(dp, 0, sizeof(*dp));
@@ -145,8 +147,9 @@ update_disk_data(void)
 		ondevs = mntsize;
 	}
 
-	/* fill mibdisk list with devstat data */
-
+	/*
+	 * Fill mibdisk list with devstat data.
+	 */
 	for(i = 0; i < ndevs; i++) {
 		struct mibdisk	*dp = NULL;
 		int64_t used, availblks;
@@ -163,12 +166,13 @@ update_disk_data(void)
 		dp->percentNode = (int)(mntbuf[i].f_files == 0 ? 100.0 : (double)(mntbuf[i].f_files - mntbuf[i].f_ffree) / (double)mntbuf[i].f_files * 100.0 + 0.5);
 	}
 
-	/* free memory allocated by devstat_getdevs() */
-
+	/*
+	 * Free memory allocated by devstat_getdevs().
+	 */
 	free((stats.dinfo)->mem_ptr);
 	(stats.dinfo)->mem_ptr = NULL;
 
-	return 0;
+	return (0);
 }
 
 int
@@ -284,15 +288,18 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 }
 
 void
-mibdisk_fini (void)
+mibdisk_fini(void)
 {
 	mibdisk_free();
 }
 
 void
-mibdisk_init(void) {
+mibdisk_init(void)
+{
 	if ( devstat_checkversion(NULL) == -1) {
-		syslog(LOG_ERR, "userland and kernel devstat version mismatch: %s", __func__);
+		syslog(LOG_ERR,
+		    "userland and kernel devstat version mismatch: %s",
+		    __func__);
 		version_ok = 0;
 	} else {
 		version_ok = 1;

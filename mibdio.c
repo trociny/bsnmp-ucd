@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,15 +27,17 @@
  *
  */
 
-#include <syslog.h>
+#include <sys/param.h>
 #include <sys/queue.h>
+#include <sys/resource.h>
+
+#include <devstat.h>
+#include <paths.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <syslog.h>
 #include <unistd.h>
-#include <paths.h>
-#include <sys/resource.h>
-#include <devstat.h>
 
 #include "snmp_ucd.h"
 
@@ -100,11 +102,10 @@ update_dio_data(void)
 	struct devinfo	dinfo;
 
 	if (!version_ok)
-		return -1;
+		return (-1);
 
-	
 	if ((get_ticks() - last_dio_update) < UPDATE_INTERVAL)
-		return 1;
+		return (1);
 
 	last_dio_update = get_ticks();
 
@@ -116,36 +117,36 @@ update_dio_data(void)
 
 	if (res == -1) {
 		syslog(LOG_ERR, "devstat_getdevs failed: %s: %m", __func__);
-		return -1;
-	} 
+		return (-1);
+	}
 
 	ndevs = (stats.dinfo)->numdevs;
 
 	if (ndevs != ondevs) {
-	
-		/* number of devices has changed. realloc mibdio */
-	
+		/*
+		 * Number of devices has changed. Realloc mibdio.
+		 */
 		mibdio_free();
 
 		for(i = 0; i < ndevs; i++) {
 			struct mibdio	*diop = NULL;
 
-			if ((diop = malloc(sizeof(*diop))) == NULL) {
-				syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
-				return -1;
+			diop = malloc(sizeof(*diop));
+			if (diop == NULL) {
+				syslog(LOG_ERR, "failed to malloc: %s: %m",
+				    __func__);
+				return (-1);
 			}
-
 			memset(diop, 0, sizeof(*diop));
 			diop->index = i + 1;
 			INSERT_OBJECT_INT(diop, &mibdio_list);
-
 		}
-
 		ondevs = ndevs;
 	}
 
-	/* fill mibdio list with devstat data */
-
+	/*
+	 * Fill mibdio list with devstat data.
+	 */
 	for(i = 0; i < ndevs; i++) {
 		struct mibdio	*diop = NULL;
 		struct devstat	dev = (stats.dinfo)->devices[i];
@@ -153,7 +154,6 @@ update_dio_data(void)
 		diop = find_dio(i+1);
 		snprintf((char *) diop->device, sizeof(diop->device), "%s%d",
 			 dev.device_name, dev.unit_number);
-			
 		diop->nRead     = (int32_t) dev.bytes[DEVSTAT_READ];
 		diop->nWritten  = (int32_t) dev.bytes[DEVSTAT_WRITE];
 		diop->reads     = (int32_t) dev.operations[DEVSTAT_READ];
@@ -162,16 +162,17 @@ update_dio_data(void)
 		diop->nWrittenX = dev.bytes[DEVSTAT_WRITE];
 	}
 
-	/* free memory allocated by devstat_getdevs() */
-	
+	/*
+	 * Free memory allocated by devstat_getdevs().
+	 */
 	free((stats.dinfo)->mem_ptr);
 	(stats.dinfo)->mem_ptr = NULL;
-	
-	return 0;
+
+	return (0);
 }
 
 int
-op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value, 
+op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
 	int ret;
@@ -181,9 +182,9 @@ op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 	update_dio_data();
 
 	switch (op) {
-
 		case SNMP_OP_GETNEXT:
-			if ((diop = NEXT_OBJECT_INT(&mibdio_list, &value->var, sub)) == NULL)
+			diop = NEXT_OBJECT_INT(&mibdio_list, &value->var, sub);
+			if (diop == NULL)
 				return (SNMP_ERR_NOSUCHNAME);
 			value->var.len = sub + 1;
 			value->var.subs[sub] = diop->index;
@@ -192,17 +193,18 @@ op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 		case SNMP_OP_GET:
 			if (value->var.len - sub != 1)
 				return (SNMP_ERR_NOSUCHNAME);
-			if ((diop = find_dio(value->var.subs[sub])) == NULL)
+			diop = find_dio(value->var.subs[sub]);
+			if (diop == NULL)
 				return (SNMP_ERR_NOSUCHNAME);
 			break;
 
 		case SNMP_OP_SET:
 			return (SNMP_ERR_NOT_WRITEABLE);
-    
+
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
 			return (SNMP_ERR_NOERROR);
-    
+
 		default:
 			return (SNMP_ERR_RES_UNAVAIL);
 	}
@@ -210,11 +212,10 @@ op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		
 		case LEAF_diskIOIndex:
 			value->v.integer = diop->index;
 			break;
-    		
+
 		case LEAF_diskIODevice:
 			ret = string_get(value, diop->device, -1);
 			break;
@@ -252,15 +253,18 @@ op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 };
 
 void
-mibdio_fini (void)
+mibdio_fini(void)
 {
 	mibdio_free();
 }
 
 void
-mibdio_init(void) {
+mibdio_init(void)
+{
 	if ( devstat_checkversion(NULL) == -1) {
-		syslog(LOG_ERR, "userland and kernel devstat version mismatch: %s", __func__);
+		syslog(LOG_ERR,
+		    "userland and kernel devstat version mismatch: %s",
+		    __func__);
 		version_ok = 0;
 	} else {
 		version_ok = 1;

@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -43,7 +43,7 @@ static void	*timer_ss, *timer_ext, *timer_fix, *timer_pr, *timer_prfix;
 
 /* the initialisation function */
 static int
-ucd_init (struct lmodule *mod, int argc __unused, char *argv[] __unused)
+ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 {
 	module = mod;
 
@@ -81,14 +81,15 @@ ucd_init (struct lmodule *mod, int argc __unused, char *argv[] __unused)
 
 /* Module is started */
 static void
-ucd_start (void)
+ucd_start(void)
 {
-	ucdavis_index = or_register (&oid_ucdavis, "The MIB module for UCD-SNMP-MIB.", module);
+	ucdavis_index = or_register(&oid_ucdavis,
+	    "The MIB module for UCD-SNMP-MIB.", module);
 }
 
 /* Called, when the module is to be unloaded after it was successfully loaded */
 static int
-ucd_fini (void)
+ucd_fini(void)
 {
 	timer_stop(timer_ss);
 	timer_stop(timer_ext);
@@ -103,7 +104,7 @@ ucd_fini (void)
 }
 
 const struct snmp_module config = {
-    .comment =      "This module implements main parts of UCD-SNMP-MIB.",
+    .comment   = "This module implements main parts of UCD-SNMP-MIB.",
     .init      = ucd_init,
     .start     = ucd_start,
     .fini      = ucd_fini,
