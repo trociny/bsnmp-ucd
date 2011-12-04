@@ -5,8 +5,8 @@
 
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
-	mibdio.c mibdisk.c \
-	mibext.c mibla.c mibmem.c mibpr.c mibss.c mibversion.c
+	mibdio.c mibdisk.c mibext.c mibla.c mibmem.c mibpr.c mibss.c \
+	mibversion.c
 INCS=	snmp_${MOD}.h
 DEFS=	${MOD}_tree.def
 MAN8=	bsnmp-${MOD}.8
@@ -22,7 +22,7 @@ WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wbad-function-cast -Wchar-subscripts -Winline \
 	-Wnested-externs -Wredundant-decls -std=c99
 
-CFLAGS +=	${WARNS} 
+CFLAGS +=	${WARNS}
 
 LIB=	snmp_${MOD}.la
 SHLIB_MAJOR=	1

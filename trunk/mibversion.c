@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,16 +28,17 @@
  */
 
 /*
- * Change this serial when releasing new version just to update CVS varibles.
+ * Change this serial when releasing new version just to update varibles.
  *
  * serial = 1980
  *
  */
 
 #include <sys/time.h>
+
 #include <time.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "snmp_ucd.h"
 
@@ -73,7 +74,7 @@ set_cDate(void)
 {
 	time_t sec;
 	int end;
-	
+
 	sec = time(NULL);
 	snprintf((char *) mibver.cDate, sizeof(mibver.cDate), "%s", ctime(&sec));
 	/* chop 'end of line' */
@@ -83,33 +84,31 @@ set_cDate(void)
 }
 
 int
-op_version(struct snmp_context * context __unused, struct snmp_value * value, 
+op_version(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
 	int ret;
 	asn_subid_t which = value->var.subs[sub - 1];
 
 	switch (op) {
-
 		case SNMP_OP_GET:
 			break;
 
 		case SNMP_OP_SET:
 			return (SNMP_ERR_NOT_WRITEABLE);
-    
+
 		case SNMP_OP_GETNEXT:
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
 			return (SNMP_ERR_NOERROR);
-    
+
 		default:
 			return (SNMP_ERR_RES_UNAVAIL);
 	}
-  	
+
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		
 		case LEAF_memIndex:
 			value->v.integer = mibver.index;
 			break;
@@ -136,4 +135,3 @@ op_version(struct snmp_context * context __unused, struct snmp_value * value,
 
 	return (ret);
 };
-
