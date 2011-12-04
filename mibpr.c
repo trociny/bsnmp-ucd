@@ -96,6 +96,14 @@ prcmd_sighandler(int sig __unused)
 	_exit(127);
 }
 
+static void
+reset_counters(int32_t val)
+{
+	struct mibpr	*prp;
+
+	TAILQ_FOREACH(prp, &mibpr_list, link)
+		prp->count = val;
+}
 
 static void
 count_proc(const char *name)
@@ -120,8 +128,10 @@ get_procs(kvm_t *kd) {
 	kp = kvm_getprocs(kd, KERN_PROC_PROC, 0, &nentries);
 	if ((kp == NULL && nentries > 0) || (kp != NULL && nentries < 0)) {
 		syslog(LOG_ERR, "failed to kvm_getprocs(): %s: %m", __func__);
+		reset_counters(-1);
 		return;
 	}
+	reset_counters(0);
 	if (nentries > 0) {
 		for (i = nentries; --i >= 0; ++kp) {
 			count_proc(kp->ki_comm);
@@ -132,7 +142,6 @@ get_procs(kvm_t *kd) {
 void
 run_prCommands(void* arg __unused)
 {
-	struct mibpr	*prp;
 	char		errbuf[_POSIX2_LINE_MAX];
 	kvm_t		*kd;
 	uint64_t	current;
@@ -142,10 +151,6 @@ run_prCommands(void* arg __unused)
 	 /* run counting only if EXT_UPDATE_INTERVAL passes after last run */
 	if ((current - _ticks) < EXT_UPDATE_INTERVAL)
 		return;
-
-	TAILQ_FOREACH(prp, &mibpr_list, link) {
-		prp->count = 0;
-	}
 
 	kd = kvm_openfiles(_PATH_DEVNULL, _PATH_DEVNULL, NULL, O_RDONLY, errbuf);
 	if (kd == 0) {
@@ -351,8 +356,8 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		case LEAF_prErrMessage:
-			if (prp->count == 0)
-				buf[0] = '\0';
+			if (prp->count < 0)
+				buf[0] = '\0'; /* Failed to count processes. */
 			else if (prp->min && prp->count < prp->min)
 				snprintf((char*)buf, sizeof(buf), "Too few %s running (# = %d)",
 					 prp->names, prp->count);
