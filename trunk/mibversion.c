@@ -30,7 +30,7 @@
 /*
  * Change this serial when releasing new version just to update varibles.
  *
- * serial = 1980
+ * serial = 1981
  *
  */
 
