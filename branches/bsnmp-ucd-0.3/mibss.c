@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,18 +27,27 @@
  *
  */
 
-#include <syslog.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/resource.h>
-#include <unistd.h>
+
 #include <paths.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "snmp_ucd.h"
+
+/*
+ * We update statistics every UPDATE_INTERVAL seconds (< 1 minute) but
+ * want to have values averaged over the last minute. Thus we store
+ * the last RING_SIZE values in a ring buffer.
+ */
+
+#define AVG_INTERVAL	6000				/* averaging interval in ticks */
+#define RING_SIZE	AVG_INTERVAL / UPDATE_INTERVAL	/* buffer size to store cpu updates */
 
 /*
  * mibmemory structures and functions
@@ -84,7 +93,7 @@ static int pagesize;	/* initialized in init_mibss() */
  *	useful on BSD mchines for calculating cpu state percentages.
  */
 
-static long 
+static long
 percentages(int cnt, int *out, register long *new, register long *old, long *diffs)
 {
     register int i;
@@ -98,10 +107,8 @@ percentages(int cnt, int *out, register long *new, register long *old, long *dif
     dp = diffs;
 
     /* calculate changes for each state and the overall change */
-    for (i = 0; i < cnt; i++)
-    {
-	if ((change = *new - *old) < 0)
-	{
+    for (i = 0; i < cnt; i++) {
+	if ((change = *new - *old) < 0) {
 	    /* this only happens when the counter wraps */
 	    change = (int)
 		((unsigned long)*new-(unsigned long)*old);
@@ -112,9 +119,7 @@ percentages(int cnt, int *out, register long *new, register long *old, long *dif
 
     /* avoid divide by zero potential */
     if (total_change == 0)
-    {
 	total_change = 1;
-    }
 
     /* calculate percentages based on overall change, rounding up */
     half_total = total_change / 2l;
@@ -122,13 +127,24 @@ percentages(int cnt, int *out, register long *new, register long *old, long *dif
     /* Do not divide by 0. Causes Floating point exception */
     if(total_change) {
         for (i = 0; i < cnt; i++)
-        {
-          *out++ = (int)((*diffs++ * 1000 + half_total) / total_change);
-        }
+		*out++ = (int)((*diffs++ * 1000 + half_total) / total_change);
     }
 
     /* return the total in case the caller wants to use it */
-    return(total_change);
+    return (total_change);
+}
+
+/* init all our ss objects */
+
+void
+mibss_init()
+{
+
+	pagesize = getpagesize();
+
+	memset(&mibss, 0, sizeof(mibss));
+	mibss.index = 1;
+	mibss.errorName = (const u_char *) "systemStats";
 }
 
 void
@@ -140,12 +156,13 @@ get_ss_data(void* arg  __unused)
 	static int32_t oswtch = -1;
 	static uint64_t last_update = 0;
 	uint64_t current;
+	int64_t delta;
 
-	/* for cpu stats */
 	static int	cpu_states[CPUSTATES];
 	static long	cp_time[CPUSTATES];
-	static long	cp_old[CPUSTATES];
-	static long	cp_diff[CPUSTATES];
+	static long	cp_old[RING_SIZE][CPUSTATES];
+	static long	cp_diff[RING_SIZE][CPUSTATES];
+	static int	cnt = 0;
 	size_t		cp_time_size = sizeof(cp_time);
 
 	u_long		val;
@@ -159,83 +176,68 @@ get_ss_data(void* arg  __unused)
 	sysctlval("vm.stats.sys.v_swtch", &val);
 	mibss.rawContexts = (uint32_t) val;
 
-	current = get_ticks();
-	if (current > last_update) {
-		if (oswappgsin < 0) { /* first interval */
-			mibss.swapIn  = 0;
-			mibss.swapOut = 0;
-			mibss.sysInterrupts = 0;
-			mibss.sysContext = 0;
-		} else {
-			mibss.swapIn = pagetok(((mibss.rawSwapIn - oswappgsin))) / (current-last_update);
-			mibss.swapOut = pagetok(((mibss.rawSwapOut - oswappgsout))) / (current-last_update);
-			mibss.sysInterrupts = (mibss.rawInterrupts - ointr) / (current-last_update);
-			mibss.sysContext = (mibss.rawContexts - oswtch) / (current-last_update);
-		}
-		oswappgsin  = mibss.rawSwapIn;
-		oswappgsout = mibss.rawSwapOut;
-		ointr = mibss.rawInterrupts;
-		oswtch = mibss.rawContexts;
-
-		last_update = current;
-	}
-
 	if (sysctlbyname("kern.cp_time", &cp_time, &cp_time_size, NULL, 0) < 0)
 		syslog(LOG_ERR, "sysctl failed: %s: %m", __func__);
-
 	/* convert cp_time counts to percentages * 10 */
-	percentages(CPUSTATES, cpu_states, cp_time, cp_old, cp_diff);
+	percentages(CPUSTATES, cpu_states, cp_time,
+	    cp_old[cnt % RING_SIZE], cp_diff[cnt % RING_SIZE]);
 
-	mibss.cpuUser = cpu_states[CP_USER] / 10;
-	mibss.cpuSystem = (cpu_states[CP_SYS] + cpu_states[CP_INTR]) / 10;
-	mibss.cpuIdle = cpu_states[CP_IDLE] / 10;
+	current = get_ticks();
+	delta = current - last_update;
+	if (last_update > 0 && delta > 0) {
+		mibss.swapIn = pagetok(((mibss.rawSwapIn - oswappgsin))) / (current-last_update);
+		mibss.swapOut = pagetok(((mibss.rawSwapOut - oswappgsout))) / (current-last_update);
+		mibss.sysInterrupts = (mibss.rawInterrupts - ointr) / (current-last_update);
+		mibss.sysContext = (mibss.rawContexts - oswtch) / (current-last_update);
+
+#define	_round(x) ((x) / 10 + (((x) % 10) >= 5 ? 1 : 0))
+		mibss.cpuUser = _round(cpu_states[CP_USER]);
+		mibss.cpuSystem = _round(cpu_states[CP_SYS] + cpu_states[CP_INTR]);
+		mibss.cpuIdle = _round(cpu_states[CP_IDLE]);
+#undef _round
+	}
+
 	mibss.cpuRawUser = cp_time[CP_USER];
 	mibss.cpuRawNice = cp_time[CP_NICE];
 	mibss.cpuRawSystem = cp_time[CP_SYS] + cp_time[CP_INTR];
 	mibss.cpuRawIdle = cp_time[CP_IDLE];
 	mibss.cpuRawKernel = cp_time[CP_SYS];
 	mibss.cpuRawInterrupt = cp_time[CP_INTR];
-}
 
-/* init all our ss objects */
-
-void
-mibss_init() {
-
-	pagesize = getpagesize();
-
-	mibss.index = 1;
-	mibss.errorName = (const u_char *) "systemStats";
+	oswappgsin  = mibss.rawSwapIn;
+	oswappgsout = mibss.rawSwapOut;
+	ointr  = mibss.rawInterrupts;
+	oswtch = mibss.rawContexts;
+	last_update = current;
+	cnt++;
 }
 
 int
-op_systemStats(struct snmp_context *context __unused, struct snmp_value *value, 
+op_systemStats(struct snmp_context *context __unused, struct snmp_value *value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
 	int ret;
 	asn_subid_t which = value->var.subs[sub - 1];
 
 	switch (op) {
-
 		case SNMP_OP_GET:
 			break;
 
 		case SNMP_OP_SET:
 			return (SNMP_ERR_NOT_WRITEABLE);
-    
+
 		case SNMP_OP_GETNEXT:
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
 			return (SNMP_ERR_NOERROR);
-    
+
 		default:
 			return (SNMP_ERR_RES_UNAVAIL);
 	}
-  	
+
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		
 		case LEAF_memIndex:
 			value->v.integer = mibss.index;
 			break;

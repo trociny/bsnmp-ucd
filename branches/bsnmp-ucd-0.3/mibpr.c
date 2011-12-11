@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -73,12 +73,13 @@ static struct mibpr_list mibpr_list = TAILQ_HEAD_INITIALIZER(mibpr_list);
 static uint64_t _ticks;
 
 static struct mibpr *
-find_pr (int32_t idx)
+find_pr(int32_t idx)
 {
 	struct mibpr *prp;
-	TAILQ_FOREACH(prp, &mibpr_list, link)
+	TAILQ_FOREACH(prp, &mibpr_list, link) {
 		if (prp->index == idx)
 			return (prp);
+	}
 	return (NULL);
 }
 
@@ -96,6 +97,14 @@ prcmd_sighandler(int sig __unused)
 	_exit(127);
 }
 
+static void
+reset_counters(int32_t val)
+{
+	struct mibpr	*prp;
+
+	TAILQ_FOREACH(prp, &mibpr_list, link)
+		prp->count = val;
+}
 
 static void
 count_proc(const char *name)
@@ -113,39 +122,36 @@ count_proc(const char *name)
 /* run process counting that have already finished */
 
 static void
-get_procs(kvm_t *kd) {
+get_procs(kvm_t *kd)
+{
 	struct kinfo_proc	*kp;
 	int			nentries = -1, i;
 
 	kp = kvm_getprocs(kd, KERN_PROC_PROC, 0, &nentries);
 	if ((kp == NULL && nentries > 0) || (kp != NULL && nentries < 0)) {
 		syslog(LOG_ERR, "failed to kvm_getprocs(): %s: %m", __func__);
+		reset_counters(-1);
 		return;
 	}
+	reset_counters(0);
 	if (nentries > 0) {
-		for (i = nentries; --i >= 0; ++kp) {
+		for (i = nentries; --i >= 0; ++kp)
 			count_proc(kp->ki_comm);
-		}
 	}
 }
 
 void
 run_prCommands(void* arg __unused)
 {
-	struct mibpr	*prp;
 	char		errbuf[_POSIX2_LINE_MAX];
 	kvm_t		*kd;
 	uint64_t	current;
 
 	current = get_ticks();
 
-	 /* run counting only if EXT_UPDATE_INTERVAL passes after last run */
+	 /* run counting only if EXT_UPDATE_INTERVAL exceeded */
 	if ((current - _ticks) < EXT_UPDATE_INTERVAL)
 		return;
-
-	TAILQ_FOREACH(prp, &mibpr_list, link) {
-		prp->count = 0;
-	}
 
 	kd = kvm_openfiles(_PATH_DEVNULL, _PATH_DEVNULL, NULL, O_RDONLY, errbuf);
 	if (kd == 0) {
@@ -153,9 +159,8 @@ run_prCommands(void* arg __unused)
 		return;
 	}
 	get_procs(kd);
-	if (kvm_close(kd) == -1) {
+	if (kvm_close(kd) == -1)
 		syslog(LOG_ERR, "failed to kvm_close(): %s: %m", __func__);
-	}
 
 	_ticks = get_ticks();
 }
@@ -183,13 +188,12 @@ run_prFixCmds(void* arg __unused)
 			continue;	/* no command specified */
 
 		if ((current - prp->_fix_ticks) < EXT_UPDATE_INTERVAL)
-			continue; /* run command only if EXT_UPDATE_INTERVAL passes after last run */
+			continue; /* run command only if EXT_UPDATE_INTERVAL exceeded */
 
 		pid = fork();
 
 		/* execute the command in the child process */
 		if (pid==0) {
-
 			int	fd;
 
 			/* close all descriptors except stdio */
@@ -213,10 +217,13 @@ run_prFixCmds(void* arg __unused)
 				alarm(EXT_TIMEOUT);
 
 				/* run the command */
-				if ((status = system((char*) prp->errFixCmd)) != 0)
-					syslog(LOG_WARNING, "command `%s' has retuned status %d", prp->errFixCmd, WEXITSTATUS(status));
+				status = system((char*)prp->errFixCmd);
+				if (status != 0) {
+					syslog(LOG_WARNING,
+					    "command `%s' has retuned status %d",
+					    prp->errFixCmd, WEXITSTATUS(status));
+				}
 				_exit(WEXITSTATUS(status));
-
 			}
 
 			/* parent of grandchild */
@@ -252,9 +259,9 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 	u_char buf[UCDMAXLEN];
 
 	switch (op) {
-
 		case SNMP_OP_GETNEXT:
-			if ((prp = NEXT_OBJECT_INT(&mibpr_list, &value->var, sub)) == NULL)
+			prp = NEXT_OBJECT_INT(&mibpr_list, &value->var, sub);
+			if (prp == NULL)
 				return (SNMP_ERR_NOSUCHNAME);
 			value->var.len = sub + 1;
 			value->var.subs[sub] = prp->index;
@@ -263,46 +270,55 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 		case SNMP_OP_GET:
 			if (value->var.len - sub != 1)
 				return (SNMP_ERR_NOSUCHNAME);
-			if ((prp = find_pr(value->var.subs[sub])) == NULL)
+			prp = find_pr(value->var.subs[sub]);
+			if (prp == NULL)
 				return (SNMP_ERR_NOSUCHNAME);
 			break;
 
 		case SNMP_OP_SET:
 			switch (which) {
 				case LEAF_prNames:
-					if ((prp = find_pr(value->var.subs[sub])) == NULL) {
-						if ((prp = malloc(sizeof(*prp))) == NULL) {
-							syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
+					prp = find_pr(value->var.subs[sub]);
+					if (prp == NULL) {
+						prp = malloc(sizeof(*prp));
+						if (prp == NULL) {
+							syslog(LOG_ERR,
+							    "failed to malloc: %s: %m",
+							    __func__);
 							return (SNMP_ERR_NOT_WRITEABLE);
 						}
 						memset(prp, 0, sizeof(*prp));
 						prp->index = value->var.subs[sub];
 						INSERT_OBJECT_INT(prp, &mibpr_list);
 					}
-					return  string_save(value, context, -1, &prp->names);
+					return (string_save(value, context, -1, &prp->names));
 
 				case LEAF_prMin:
-					if ((prp = find_pr(value->var.subs[sub])) == NULL)
+					prp = find_pr(value->var.subs[sub]);
+					if (prp == NULL)
 						return (SNMP_ERR_NOT_WRITEABLE);
 					prp->min = value->v.integer;
 					return SNMP_ERR_NOERROR;
 
 				case LEAF_prMax:
-					if ((prp = find_pr(value->var.subs[sub])) == NULL)
+					prp = find_pr(value->var.subs[sub]);
+					if (prp == NULL)
 						return (SNMP_ERR_NOT_WRITEABLE);
 					prp->max = value->v.integer;
 					return SNMP_ERR_NOERROR;
 
 				case LEAF_prErrFix:
-					if ((prp = find_pr(value->var.subs[sub])) == NULL)
+					prp = find_pr(value->var.subs[sub]);
+					if (prp == NULL)
 						return (SNMP_ERR_NOT_WRITEABLE);
 					prp->errFix = value->v.integer;
 					return SNMP_ERR_NOERROR;
 
 				case LEAF_prErrFixCmd:
-					if ((prp = find_pr(value->var.subs[sub])) == NULL)
+					prp = find_pr(value->var.subs[sub]);
+					if (prp == NULL)
 						return (SNMP_ERR_NOT_WRITEABLE);
-					return  string_save(value, context, -1, &prp->errFixCmd);
+					return (string_save(value, context, -1, &prp->errFixCmd));
 
 				default:
 					break;
@@ -320,7 +336,6 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-
 		case LEAF_prIndex:
 			value->v.integer = prp->index;
 			break;
@@ -351,18 +366,22 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 			break;
 
 		case LEAF_prErrMessage:
-			if (prp->count == 0)
+			if (prp->count < 0) {
+				buf[0] = '\0'; /* Failed to count processes. */
+			} else if (prp->min && prp->count < prp->min) {
+				snprintf((char*)buf, sizeof(buf),
+				    "Too few %s running (# = %d)",
+				    prp->names, prp->count);
+			} else if (prp->max && prp->count > prp->max) {
+				snprintf((char*)buf, sizeof(buf),
+				    "Too many %s running (# = %d)",
+				    prp->names, prp->count);
+			} else if (prp->min == 0 && prp->max == 0 && prp->count < 1) {
+				snprintf((char*)buf, sizeof(buf),
+				    "No %s process running.", prp->names);
+			} else {
 				buf[0] = '\0';
-			else if (prp->min && prp->count < prp->min)
-				snprintf((char*)buf, sizeof(buf), "Too few %s running (# = %d)",
-					 prp->names, prp->count);
-			else if (prp->max && prp->count > prp->max)
-				snprintf((char*)buf, sizeof(buf), "Too many %s running (# = %d)",
-					 prp->names, prp->count);
-			else if (prp->min == 0 && prp->max == 0 && prp->count < 1)
-				snprintf((char*)buf, sizeof(buf), "No %s process running.", prp->names);
-			else
-				buf[0] = '\0';
+			}
 			ret = string_get(value, buf, -1);
 			break;
 
@@ -383,7 +402,7 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 
 /* free mibpr list */
 static void
-mibpr_free (void)
+mibpr_free(void)
 {
 	struct mibpr *prp = NULL;
 	while ((prp = first_mibpr()) != NULL) {
@@ -395,7 +414,7 @@ mibpr_free (void)
 }
 
 void
-mibpr_fini (void)
+mibpr_fini(void)
 {
 	mibpr_free();
 }

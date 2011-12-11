@@ -1,3 +1,14 @@
+bsnmp-ucd (0.3.3)
+
+  * Calculate ssCpuUser, ssCpuSystem and ssCpuIdle over the last
+    minute, as it is specified in the MIB. Previously they were
+    calculated over UPDATE_INTERVAL, which was 5 sec.
+
+  * Return prErrMessage correctly for the case when no processes found.
+    Submitted by Mykola Dzham <i@levsha.me> (initial version).
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2011/12/11
+
 bsnmp-ucd (0.3.2)
 
   * Remove ssCpuRawSoftIRQ MIB: it showed vm.stats.sys.v_soft (number
