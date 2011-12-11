@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,19 +27,20 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/vmmeter.h>
+
+#include <vm/vm_param.h>
+
+#include <fcntl.h>
+#include <kvm.h>
+#include <paths.h>
 #include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-#include <sys/types.h>
-#include <sys/sysctl.h>
 #include <unistd.h>
-#include <paths.h>
-#include <fcntl.h>
-#include <kvm.h>
-#include <sys/vmmeter.h>
-#include <vm/vm_param.h>
 
 #include "snmp_ucd.h"
 
@@ -94,7 +95,9 @@ swapmode(int *rettotal, int *retavail)
 
 /* get memory data and fill mibmem */
 
-static void get_mem_data (void) {
+static void
+get_mem_data (void)
+{
 	static struct	vmtotal total;
 	size_t		total_size = sizeof(total);
 	u_long		val;
@@ -115,9 +118,8 @@ static void get_mem_data (void) {
 	mibmem.cached = (int32_t) pagetok(val);
 	sysctlval("vfs.bufspace", &val);
 	mibmem.buffer = (int32_t) (val / 1024);
-	mibmem.shared = pagetok(total.t_vmshr + total.t_avmshr + 
+	mibmem.shared = pagetok(total.t_vmshr + total.t_avmshr +
 				total.t_rmshr + total.t_armshr);
-
 }
 
 static uint64_t last_mem_update;	/* ticks of the last mem data update */
@@ -127,8 +129,9 @@ static uint64_t last_mem_update;	/* ticks of the last mem data update */
 void
 mibmemory_init ()
 {
+
 	pagesize = getpagesize();
-	
+
 	kd = kvm_open(NULL, _PATH_DEVNULL, NULL, O_RDONLY, "kvm_open");
 	if (kd == NULL)
 		syslog(LOG_ERR, "kvm_open failed: %s: %m", __func__);
@@ -146,24 +149,22 @@ mibmemory_init ()
 static void
 update_memory_data(void)
 {
-	/* update data only once in UPDATE_INTERVAL */
-	if ((get_ticks() - last_mem_update) > UPDATE_INTERVAL) { 
-		
-		get_mem_data();
 
+	/* update data only once in UPDATE_INTERVAL */
+	if ((get_ticks() - last_mem_update) > UPDATE_INTERVAL) {
+		get_mem_data();
 		last_mem_update = get_ticks();
 	}
 }
 
 int
-op_memory(struct snmp_context * context __unused, struct snmp_value * value, 
+op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
 	int ret;
 	asn_subid_t which = value->var.subs[sub - 1];
 
 	switch (op) {
-
 		case SNMP_OP_GET:
 			break;
 
@@ -173,28 +174,27 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 					mibmem.minimumSwap = value->v.integer;
 					return (SNMP_ERR_NOERROR);
 				case LEAF_memSwapErrorMsg:
-					return  string_save(value, context, -1, &mibmem.swapErrorMsg);
+					return (string_save(value, context, -1, &mibmem.swapErrorMsg));
 				default:
 					break;
 			}
 			return (SNMP_ERR_NOT_WRITEABLE);
-    
+
 		case SNMP_OP_GETNEXT:
 		case SNMP_OP_ROLLBACK:
 		case SNMP_OP_COMMIT:
 			return (SNMP_ERR_NOERROR);
-    
+
 		default:
 			return (SNMP_ERR_RES_UNAVAIL);
 			break;
 	}
-  	
+
 	update_memory_data();
 
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		
 		case LEAF_memIndex:
 			value->v.integer = mibmem.index;
 			break;

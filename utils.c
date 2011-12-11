@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,16 +27,20 @@
  *
  */
 
-#include <syslog.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
+#include <syslog.h>
 
 #include "snmp_ucd.h"
 
 void
-sysctlval(const char *name, u_long *val) {
-	size_t len = sizeof(val);
+sysctlval(const char *name, u_long *val)
+{
+	size_t len;
+
 	*val = 0;
+	len = sizeof(val);
   	if (sysctlbyname(name, val, &len, NULL, 0) != 0)
 		syslog(LOG_WARNING, "%s: %m", __func__);
 }
