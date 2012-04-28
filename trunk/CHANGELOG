@@ -1,3 +1,10 @@
+bsnmp-ucd (0.3.4)
+
+  * Set dskErrorFlag and dskErrorMsg when the disk free space less
+    than dskMinimum or dskMinPercent.
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2012/XX/XX
+
 bsnmp-ucd (0.3.3)
 
   * Calculate ssCpuUser, ssCpuSystem and ssCpuIdle over the last

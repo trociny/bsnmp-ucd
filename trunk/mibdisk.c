@@ -34,6 +34,7 @@
 
 #include <devstat.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -48,11 +49,14 @@ struct mibdisk {
 	int32_t			index;
 	u_char			path[MNAMELEN];
 	u_char			device[MNAMELEN];
+	int32_t			minimum;
+	int32_t			minPercent;
 	uint64_t		total;
 	uint64_t		avail;
 	uint64_t		used;
 	int32_t			percent;
 	int32_t			percentNode;
+	int32_t			errorFlag;
 };
 
 TAILQ_HEAD(mibdisk_list, mibdisk);
@@ -66,12 +70,6 @@ static int	ondevs;		/* here we store old number of devices */
 static uint64_t last_disk_update;	/* ticks of the last disk data update */
 
 static struct mibdisk *
-first_mibdisk(void)
-{
-	return (TAILQ_FIRST(&mibdisk_list));
-}
-
-static struct mibdisk *
 find_disk (int32_t idx)
 {
 	struct mibdisk *dp;
@@ -81,14 +79,19 @@ find_disk (int32_t idx)
 	return (NULL);
 }
 
-/* free mibdisk list */
+/* free mibdisk list starting from the specified index */
 static void
-mibdisk_free (void)
+mibdisk_free (int32_t idx)
 {
-	struct mibdisk *dp = NULL;
-	while ((dp = first_mibdisk()) != NULL) {
-		TAILQ_REMOVE (&mibdisk_list, dp, link);
-		free (dp);
+	struct mibdisk *dp, *next;
+
+	dp = find_disk(idx);
+
+	while (dp != NULL) {
+		next = TAILQ_NEXT(dp, link);
+		TAILQ_REMOVE(&mibdisk_list, dp, link);
+		free(dp);
+		dp = next;
 	}
 }
 
@@ -100,12 +103,13 @@ update_disk_data(void)
 	int	i, res, ndevs;
 	struct statinfo	stats;
 	struct devinfo	dinfo;
+	struct mibdisk	*dp;
 
 	if (!version_ok)
 		return (-1);
 
 	if ((get_ticks() - last_disk_update) < UPDATE_INTERVAL)
-		return (1);
+		return (0);
 
 	last_disk_update = get_ticks();
 
@@ -124,15 +128,13 @@ update_disk_data(void)
 
 	ndevs = mntsize;
 
-	if (ndevs != ondevs) {
-		/*
-		 * Number of devices has changed. Realloc mibdio.
-		 */
-		mibdisk_free();
-
-		for(i = 0; i < ndevs; i++) {
-			struct mibdisk	*dp = NULL;
-
+	/*
+	 * Realloc mibdio if number of devices has changed.
+	 */
+	if (ndevs < ondevs) {
+		mibdisk_free(ndevs);
+	} else if (ndevs > ondevs) {
+		for(i = ondevs; i < ndevs; i++) {
 			dp = malloc(sizeof(*dp));
 			if (dp == NULL) {
 				syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
@@ -141,17 +143,17 @@ update_disk_data(void)
 
 			memset(dp, 0, sizeof(*dp));
 			dp->index = i + 1;
+			dp->minimum = -1;
+			dp->minPercent = -1;
 			INSERT_OBJECT_INT(dp, &mibdisk_list);
-
 		}
-		ondevs = mntsize;
 	}
+	ondevs = ndevs;
 
 	/*
 	 * Fill mibdisk list with devstat data.
 	 */
 	for(i = 0; i < ndevs; i++) {
-		struct mibdisk	*dp = NULL;
 		int64_t used, availblks;
 
 		dp = find_disk(i+1);
@@ -164,6 +166,9 @@ update_disk_data(void)
 		availblks = mntbuf[i].f_bavail + used;
 		dp->percent = (int)(availblks == 0 ? 100.0 : (double)used / (double)availblks * 100.0 + 0.5);
 		dp->percentNode = (int)(mntbuf[i].f_files == 0 ? 100.0 : (double)(mntbuf[i].f_files - mntbuf[i].f_ffree) / (double)mntbuf[i].f_files * 100.0 + 0.5);
+		dp->errorFlag = (dp->minimum >= 0 ?
+		    dp->avail < (uint64_t)dp->minimum :
+		    100 - dp->percent <= dp->minPercent) ? 1 : 0;
 	}
 
 	/*
@@ -182,8 +187,10 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 	int ret;
 	struct mibdisk *dp = NULL;
 	asn_subid_t which = value->var.subs[sub - 1];
+	u_char buf[UCDMAXLEN];
 
-	update_disk_data();
+	if (update_disk_data() == -1)
+		return (SNMP_ERR_RES_UNAVAIL);
 
 	switch (op) {
 		case SNMP_OP_GETNEXT:
@@ -201,6 +208,17 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 			break;
 
 		case SNMP_OP_SET:
+			syslog(LOG_INFO, "%s: SNMP_OP_SET", __func__);
+			if ((dp = find_disk(value->var.subs[sub])) == NULL)
+				return (SNMP_ERR_NOSUCHNAME);
+			switch (which) {
+			case LEAF_dskMinimum:
+				dp->minimum = value->v.integer;
+				return (SNMP_ERR_NOERROR);
+			case LEAF_dskMinPercent:
+				dp->minPercent = value->v.integer;
+				return (SNMP_ERR_NOERROR);
+			}
 			return (SNMP_ERR_NOT_WRITEABLE);
 
 		case SNMP_OP_ROLLBACK:
@@ -224,6 +242,14 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 
 		case LEAF_dskDevice:
 			ret = string_get(value, dp->device, -1);
+			break;
+
+		case LEAF_dskMinimum:
+			value->v.integer = dp->minimum;
+			break;
+
+		case LEAF_dskMinPercent:
+			value->v.integer = dp->minPercent;
 			break;
 
 		case LEAF_dskTotal:
@@ -279,6 +305,27 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 			value->v.integer = dp->percentNode;
 			break;
 
+		case LEAF_dskErrorFlag:
+			value->v.integer = dp->errorFlag;
+			break;
+
+		case LEAF_prErrMessage:
+			if (dp->errorFlag) {
+				if (dp->minimum >= 0) {
+					snprintf((char*)buf, sizeof(buf),
+					    "%s: less than %d free (= %llu)",
+					    dp->path, dp->minimum, dp->avail);
+				} else {
+					snprintf((char*)buf, sizeof(buf),
+					    "%s: less than %d%% free (= %d%%)",
+					    dp->path, dp->minPercent,
+					    dp->percent);
+				}
+			} else {
+				buf[0] = '\0';
+			}
+			ret = string_get(value, buf, -1);
+			break;
 		default:
 			ret = SNMP_ERR_RES_UNAVAIL;
 			break;
@@ -290,7 +337,7 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 void
 mibdisk_fini(void)
 {
-	mibdisk_free();
+	mibdisk_free(0);
 }
 
 void
