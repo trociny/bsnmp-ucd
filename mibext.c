@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Mikolaj Golub
+ * Copyright (c) 2007-2012 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@
 #include "snmp_ucd.h"
 
 /*
- * mibext structures and functions
+ * mibext structures and functions.
  */
 
 struct mibext {
@@ -77,218 +77,208 @@ static struct mibext *
 find_ext(int32_t idx)
 {
 	struct mibext *extp;
-	TAILQ_FOREACH(extp, &mibext_list, link)
+
+	TAILQ_FOREACH(extp, &mibext_list, link) {
 		if (extp->index == idx)
-			return (extp);
-	return (NULL);
+			break;
+	}
+
+	return (extp);
 }
 
-static struct mibext *
-first_mibext(void)
-{
-	return (TAILQ_FIRST(&mibext_list));
-}
-
-#if 0 /* not used now */
-static struct mibext *
-next_mibext(const struct mibext *extp)
-{
-	return (TAILQ_NEXT(extp, link));
-}
-#endif
-
-/* handle timeouts when executing commands */
-
+/*
+ * Handle timeouts when executing commands.
+ */
 static void
 extcmd_sighandler(int sig __unused)
 {
+
 	_exit(127);
 }
 
 
-/* run commands and collect results of programs that have already finished */
-
+/*
+ * Run commands and collect results of programs that have already finished.
+ */
 void
 run_extCommands(void* arg __unused)
 {
-	struct mibext	*extp;
-	uint64_t	current;
+	struct mibext *extp;
+	struct ext_msg msg;
+	uint64_t current;
+	FILE *fp;
+	int status, fd, n;
+	pid_t pid, res;
+	char null[UCDMAXLEN];
+
 
 	current = get_ticks();
 
-	/* run commads which are ready for running */
+	/* Run commads which are ready for running. */
 
 	TAILQ_FOREACH(extp, &mibext_list, link) {
-		int	status;
-		pid_t	pid;
-
 		if (!extp->command)
-			continue; /* no command specified */
+			continue; /* No command specified. */
 
 		if (extp->_is_running)
-			continue; /* command has already been running */
+			continue; /* Command has already been running. */
 
 		if ((current - extp->_ticks) < EXT_UPDATE_INTERVAL)
-			continue; /* run command only if EXT_UPDATE_INTERVAL passes after last run */
+			continue; /* EXT_UPDATE_INTERVAL has not passed yet. */
 
-		/* create a pipe */
-		if (pipe(extp->_fd) != 0) {
+		/* Make a pipe */
+		if (pipe(extp->_fd) == -1) {
 			syslog(LOG_ERR, "failed to pipe: %s: %m", __func__);
 			continue;
 		}
-
-		/* make the pipe non-blocking */
 		fcntl(extp->_fd[0],F_SETFL,O_NONBLOCK);
 		fcntl(extp->_fd[1],F_SETFL,O_NONBLOCK);
 
+		/* Execute the command in the child process. */
 		pid = fork();
 
-		/* execute the command in the child process */
-		if (pid==0) {
-			int fd;
-
-			/* close all descriptors except stdio and pipe for reading */
+		if (pid == 0) {
+			/* Close all descriptors except stdio and pipe for reading. */
 			for (fd = 3; fd < extp->_fd[1]; fd++)
 				close(fd);
 
-			/* fork again */
+			/* Fork again. */
 			if ((pid = fork()) < 0) {
 				syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 				_exit(127);
 			}
 
 			if (pid == 0) { /* grandchild */
-				struct ext_msg	msg;
-				char	null[UCDMAXLEN];
-				FILE	*fp;
-
 				msg.output[0] = '\0';
 
-				/* become process group leader */
+				/* Become process group leader. */
 				setpgid(0, 0);
 
-				/* trap commands that timeout */
+				/* Trap commands that timeout. */
 				signal(SIGALRM, extcmd_sighandler);
  				alarm(EXT_TIMEOUT);
 
-				/* run the command */
+				/* Run the command. */
 				fp = popen((char*) extp->command, "r");
 				if (fp == NULL) {
 					syslog(LOG_ERR, "popen failed: %s: %m",
 					    __func__);
-					/* send empty line to parent and exit*/
+					/* Send empty line to parent and exit. */
 					msg.result = 127;
 					write(extp->_fd[1], (char*) &msg,
 					    sizeof(msg));
 					_exit(127);
 				}
 
-				/* read first line to output buffer*/
+				/* Read the first line to output buffer. */
 				if (fgets((char*) msg.output, sizeof(msg.output), fp) != NULL) { /* we have some output */
 					int	end;
 
-					/* chop 'end of line' */
+					/* Chop 'end of line'. */
 					end = strlen((char*) msg.output) - 1;
 					if ((end >= 0) && (msg.output[end] == '\n'))
 						msg.output[end] = '\0';
 
-					/* just skip other lines */
+					/* Just skip other lines. */
 					while (fgets(null, sizeof(null), fp) != NULL);
 				}
 
 				status = pclose(fp);
 				msg.result = WEXITSTATUS(status);
-				/* send result to parent*/
+				/* Send the result to the parent. */
 				write(extp->_fd[1], (char*) &msg, sizeof(msg));
 				close(extp->_fd[1]);
 				_exit(msg.result);
-			} else { /* parent of grandchild */
+			} else { /* Parent of grandchild. */
 				_exit(0);
 			}
 		}
 
-		/* parent (bsnmpd process) */
+		/* Parent (bsnmpd process). */
 
-		if (pid < 0) {
+		if (pid == -1) {
 			syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 			close(extp->_fd[0]);
 			close(extp->_fd[1]);
 			continue;
 		}
 
-		/* close pipe for writing */
+		/* Close pipe for writing. */
 		close(extp->_fd[1]);
 
-		/* wait for child */
+		/* Wait for child. */
 		for (;;) {
-			pid_t res;
 			res = waitpid(pid, &status, 0);
 			if (res == -1 && errno == EINTR)
 				continue;
 
-			if (res <= 0) {
+			if (res == -1) {
 				syslog(LOG_ERR, "waitpid failed: %s: %m",
 				    __func__);
 				break;
 			} else {
-				/* get the exit code returned from the program */
+				/* Get the exit code returned from the program. */
 				status = WEXITSTATUS(status);
 			}
 
-			if ((res <= 0) || status) {
-				/* something wrong with running program */
-				/* consider it as program has finished abnormaly */
+			if (status != 0) {
+				/*
+				 * Something wrong with running program.
+				 * Treat this as the program has finished
+				 * abnormaly.
+				 */
 
-				/* save time of program finishing */
+				/* Save the program termination time. */
 				extp->_ticks = get_ticks();
 
-				/* close pipe for reading */
+				/* Close the pipe for reading. */
 				close(extp->_fd[0]);
 
-				/* fill extp data */
+				/* Fill extp data. */
 				extp->result = 127;
 				extp->output[0] = '\0';
 				extp->_is_running = 0;
-			} else { /*  program is runnng */
+			} else { /*  Program is running. */
 				extp->_is_running = 1;
 			}
 			break;
 		}
 	}
 
-	/* collect data of finished commands */
+	/* Collect data of finished commands. */
 
 	TAILQ_FOREACH(extp, &mibext_list, link) {
-		struct ext_msg	msg;
-		int	n;
-
 		if (!extp->_is_running)
-			break; /* programm is not running */
+			break; /* Programm is not running */
 
 		for (;;) {
 			n = read(extp->_fd[0], (char*) &msg, sizeof(msg));
 
 			if (n == -1 && errno == EINTR)
-				continue;	/* interrupted; try again */
+				continue;	/* Interrupted. Try again. */
 
 			if (n == -1 && errno == EAGAIN)
-				break;		/* no data this time */
+				break;		/* No data this time. */
 
 			if (n != sizeof(msg)) {
-				/* read returned something wrong */
-				/* mark command as abnormally finished */
+				/*
+				 * Read returned something wrong. Mark the
+				 * command as abnormally finished
+				 */
 				extp->result = 127;
-				strncpy((char*) extp->output, "Exited abnormally!", sizeof(extp->output) - 1);
+				strncpy((char*) extp->output, "Exited abnormally!",
+				    sizeof(extp->output) - 1);
 			} else {
 				extp->result = msg.result;
-				strncpy((char*) extp->output, (char*) msg.output, sizeof(extp->output) - 1);
+				strncpy((char *)extp->output, (char *)msg.output,
+				    sizeof(extp->output) - 1);
 			}
 
 			extp->_is_running = 0;
 
 			close(extp->_fd[0]);
 
-			/* save time of program finishing */
+			/* Save the program termination time. */
 			extp->_ticks = get_ticks();
 
 			break;
@@ -296,60 +286,57 @@ run_extCommands(void* arg __unused)
 	}
 }
 
-/* run fix commands */
-
+/*
+ * Run fix commands.
+ */
 void
 run_extFixCmds(void* arg __unused)
 {
-	struct mibext	*extp;
-	uint64_t	current;
+	struct mibext *extp;
+	uint64_t current;
+	pid_t pid, res;
+	int status, fd;
 
 	current = get_ticks();
 
-	/* run commads if needed */
+	/* Run commads if needed. */
 
 	TAILQ_FOREACH(extp, &mibext_list, link) {
-		pid_t	pid;
-		int	status;
-
 		if (!extp->errFix)
-			continue;	/* no fix */
+			continue;	/* No fix. */
 
 		if (!extp->errFixCmd)
-			continue;	/* no command specified */
+			continue;	/* No command specified. */
 
 		if (extp->result == 0)
-			continue;	/* checked command exited normaly, no need for fix*/
+			continue;	/* Checked command exited normaly, no need for fix. */
 
 		if ((current - extp->_fix_ticks) < EXT_UPDATE_INTERVAL)
-			continue; /* run command only if EXT_UPDATE_INTERVAL passes after last run */
+			continue;  /* EXT_UPDATE_INTERVAL has not passed yet. */
 
+		/* Execute the command in the child process. */
 		pid = fork();
 
-		/* execute the command in the child process */
-		if (pid==0) {
-			int	fd;
-
-			/* close all descriptors except stdio */
+		if (pid == 0) {
+			/* Close all descriptors except stdio. */
 			for (fd = 3; fd <= getdtablesize(); fd++)
 				close(fd);
 
-			/* fork again */
-
+			/* Fork again. */
 			if ((pid = fork()) < 0) {
 				syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 				_exit(127);
 			}
 
 			if (pid == 0) { /* grandchild */
-				/* become process group leader */
+				/* Become process group leader. */
 				setpgid(0, 0);
 
-				/* trap commands that timeout */
+				/* Trap commands that timeout. */
 				signal(SIGALRM, extcmd_sighandler);
 				alarm(EXT_TIMEOUT);
 
-				/* run the command */
+				/* Run the command. */
 				status = system((char*) extp->errFixCmd);
 				if (status != 0) {
 					syslog(LOG_WARNING,
@@ -359,22 +346,23 @@ run_extFixCmds(void* arg __unused)
 				_exit(WEXITSTATUS(status));
 			}
 
-			/* parent of grandchild */
+			/* Parent of grandchild. */
 			_exit(0);
 		}
 
-		/* parent */
+		/* Parent. */
 
-		if (pid < 0)
+		if (pid == -1) {
 			syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
+			continue;
+		}
 
-		/* wait for child */
+		/* Wait for child. */
 		for (;;) {
-			pid_t res;
 			res = waitpid(pid, &status, 0);
 			if (res == -1 && errno == EINTR)
 				continue;
-			if (res <= 0)
+			if (res == -1)
 				syslog(LOG_ERR, "failed to waitpid: %s: %m", __func__);
 			break;
 		}
@@ -386,134 +374,141 @@ int
 op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
-	int ret;
 	struct mibext *extp = NULL;
-	asn_subid_t which = value->var.subs[sub - 1];
+	asn_subid_t which;
+	int ret;
+
+	which = value->var.subs[sub - 1];
 
 	switch (op) {
+	case SNMP_OP_GETNEXT:
+		extp = NEXT_OBJECT_INT(&mibext_list, &value->var, sub);
+		if (extp == NULL)
+			return (SNMP_ERR_NOSUCHNAME);
+		value->var.len = sub + 1;
+		value->var.subs[sub] = extp->index;
+		break;
 
-		case SNMP_OP_GETNEXT:
-			extp = NEXT_OBJECT_INT(&mibext_list, &value->var, sub);
-			if (extp == NULL)
-				return (SNMP_ERR_NOSUCHNAME);
-			value->var.len = sub + 1;
-			value->var.subs[sub] = extp->index;
-			break;
+	case SNMP_OP_GET:
+		if (value->var.len - sub != 1)
+			return (SNMP_ERR_NOSUCHNAME);
+		extp = find_ext(value->var.subs[sub]);
+		if (extp == NULL)
+			return (SNMP_ERR_NOSUCHNAME);
+		break;
 
-		case SNMP_OP_GET:
-			if (value->var.len - sub != 1)
-				return (SNMP_ERR_NOSUCHNAME);
+	case SNMP_OP_SET:
+		switch (which) {
+		case LEAF_extNames:
+			extp = find_ext(value->var.subs[sub]);
+			if (extp == NULL) {
+				extp = malloc(sizeof(*extp));
+				if (extp == NULL) {
+					syslog(LOG_ERR,
+					    "failed to malloc: %s: %m",
+					    __func__);
+					return (SNMP_ERR_NOT_WRITEABLE);
+				}
+				memset(extp, 0, sizeof(*extp));
+				extp->index = value->var.subs[sub];
+				INSERT_OBJECT_INT(extp, &mibext_list);
+			} else {
+				/*
+				 * We have already had some command defined
+				 * under this index. Check if the command is
+				 * running to close our end of pipe.
+				 */
+				if (extp->_is_running) {
+					close(extp->_fd[0]);
+					extp->_is_running = 0;
+				}
+			}
+			ret = string_save(value, context, -1, &extp->names);
+			return (ret);
+
+		case LEAF_extCommand:
 			extp = find_ext(value->var.subs[sub]);
 			if (extp == NULL)
-				return (SNMP_ERR_NOSUCHNAME);
-			break;
+				return (SNMP_ERR_NOT_WRITEABLE);
+			ret = string_save(value, context, -1, &extp->command);
+			return (ret);
 
-		case SNMP_OP_SET:
-			switch (which) {
-				case LEAF_extNames:
-					extp = find_ext(value->var.subs[sub]);
-					if (extp == NULL) {
-						extp = malloc(sizeof(*extp));
-						if (extp == NULL) {
-							syslog(LOG_ERR,
-							    "failed to malloc: %s: %m",
-							    __func__);
-							return (SNMP_ERR_NOT_WRITEABLE);
-						}
-						memset(extp, 0, sizeof(*extp));
-						extp->index = value->var.subs[sub];
-						INSERT_OBJECT_INT(extp, &mibext_list);
-					} else {
-						/*
-						 * We have already had some command
-						 * defined under this index. Check
-						 * if the command is run to close
-						 * our end of pipe
-						 */
-						if (extp->_is_running) {
-							close(extp->_fd[0]);
-							extp->_is_running = 0;
-						}
-					}
-					return (string_save(value, context, -1, &extp->names));
+		case LEAF_extErrFix:
+			extp = find_ext(value->var.subs[sub]);
+			if (extp == NULL)
+				return (SNMP_ERR_NOT_WRITEABLE);
+			extp->errFix = value->v.integer;
+			return SNMP_ERR_NOERROR;
 
-				case LEAF_extCommand:
-					extp = find_ext(value->var.subs[sub]);
-					if (extp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					return (string_save(value, context, -1, &extp->command));
-
-				case LEAF_extErrFix:
-					extp = find_ext(value->var.subs[sub]);
-					if (extp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					extp->errFix = value->v.integer;
-					return SNMP_ERR_NOERROR;
-
-				case LEAF_extErrFixCmd:
-					extp = find_ext(value->var.subs[sub]);
-					if (extp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					return (string_save(value, context, -1, &extp->errFixCmd));
-
-				default:
-					break;
-			}
-			return (SNMP_ERR_NOT_WRITEABLE);
-
-		case SNMP_OP_ROLLBACK:
-		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
+		case LEAF_extErrFixCmd:
+			extp = find_ext(value->var.subs[sub]);
+			if (extp == NULL)
+				return (SNMP_ERR_NOT_WRITEABLE);
+			ret = string_save(value, context, -1,
+			    &extp->errFixCmd);
+			return (ret);
 
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+			break;
+		}
+		return (SNMP_ERR_NOT_WRITEABLE);
+
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+		return (SNMP_ERR_NOERROR);
+
+	default:
+		return (SNMP_ERR_RES_UNAVAIL);
 	}
 
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		case LEAF_extIndex:
-			value->v.integer = extp->index;
-			break;
+	case LEAF_extIndex:
+		value->v.integer = extp->index;
+		break;
 
-		case LEAF_extNames:
-			ret = string_get(value, extp->names, -1);
-			break;
+	case LEAF_extNames:
+		ret = string_get(value, extp->names, -1);
+		break;
 
-		case LEAF_extCommand:
-			ret = string_get(value, extp->command, -1);
-			break;
+	case LEAF_extCommand:
+		ret = string_get(value, extp->command, -1);
+		break;
 
-		case LEAF_extResult:
-			value->v.integer = extp->result;
-			break;
+	case LEAF_extResult:
+		value->v.integer = extp->result;
+		break;
 
-		case LEAF_extOutput:
-			ret = string_get(value, extp->output, -1);
-			break;
+	case LEAF_extOutput:
+		ret = string_get(value, extp->output, -1);
+		break;
 
-		case LEAF_extErrFix:
-			value->v.integer = extp->errFix;
-			break;
+	case LEAF_extErrFix:
+		value->v.integer = extp->errFix;
+		break;
 
-		case LEAF_extErrFixCmd:
-			ret = string_get(value, extp->errFixCmd, -1);
-			break;
+	case LEAF_extErrFixCmd:
+		ret = string_get(value, extp->errFixCmd, -1);
+		break;
 
-		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
-			break;
+	default:
+		ret = SNMP_ERR_RES_UNAVAIL;
+		break;
 	}
 
 	return (ret);
 };
 
-/* free mibext list */
+/*
+ * Free mibext list.
+ */
 static void
 mibext_free(void)
 {
-	struct mibext *extp = NULL;
-	while ((extp = first_mibext()) != NULL) {
+	struct mibext *extp;
+
+	while ((extp = TAILQ_FIRST(&mibext_list)) != NULL) {
 		TAILQ_REMOVE (&mibext_list, extp, link);
 		free(extp->names);
 		free(extp->command);
@@ -525,5 +520,6 @@ mibext_free(void)
 void
 mibext_fini(void)
 {
+
 	mibext_free();
 }
