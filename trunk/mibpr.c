@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Mikolaj Golub
+ * Copyright (c) 2009-2012 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@
 #include "snmp_ucd.h"
 
 /*
- * mibpr structures and functions
+ * mibpr structures and functions.
  */
 
 struct mibpr {
@@ -76,6 +76,7 @@ static struct mibpr *
 find_pr(int32_t idx)
 {
 	struct mibpr *prp;
+
 	TAILQ_FOREACH(prp, &mibpr_list, link) {
 		if (prp->index == idx)
 			return (prp);
@@ -86,21 +87,24 @@ find_pr(int32_t idx)
 static struct mibpr *
 first_mibpr(void)
 {
+
 	return (TAILQ_FIRST(&mibpr_list));
 }
 
-/* handle timeouts when executing commands */
-
+/*
+ * Handle timeouts when executing commands.
+ */
 static void
 prcmd_sighandler(int sig __unused)
 {
+
 	_exit(127);
 }
 
 static void
 reset_counters(int32_t val)
 {
-	struct mibpr	*prp;
+	struct mibpr *prp;
 
 	TAILQ_FOREACH(prp, &mibpr_list, link)
 		prp->count = val;
@@ -109,7 +113,7 @@ reset_counters(int32_t val)
 static void
 count_proc(const char *name)
 {
-	struct mibpr	*prp;
+	struct mibpr *prp;
 
 	TAILQ_FOREACH(prp, &mibpr_list, link) {
 		if (!prp->names || prp->names[0] == '\0')
@@ -119,14 +123,13 @@ count_proc(const char *name)
 	}
 }
 
-/* run process counting that have already finished */
-
 static void
 get_procs(kvm_t *kd)
 {
-	struct kinfo_proc	*kp;
-	int			nentries = -1, i;
+	struct kinfo_proc *kp;
+	int nentries, i;
 
+	nentries = -1;
 	kp = kvm_getprocs(kd, KERN_PROC_PROC, 0, &nentries);
 	if ((kp == NULL && nentries > 0) || (kp != NULL && nentries < 0)) {
 		syslog(LOG_ERR, "failed to kvm_getprocs(): %s: %m", __func__);
@@ -140,16 +143,19 @@ get_procs(kvm_t *kd)
 	}
 }
 
+/*
+ * Count processes.
+ */
 void
 run_prCommands(void* arg __unused)
 {
-	char		errbuf[_POSIX2_LINE_MAX];
-	kvm_t		*kd;
-	uint64_t	current;
+	char errbuf[_POSIX2_LINE_MAX];
+	kvm_t *kd;
+	uint64_t current;
 
 	current = get_ticks();
 
-	 /* run counting only if EXT_UPDATE_INTERVAL exceeded */
+	 /* Run counting only if EXT_UPDATE_INTERVAL exceeded. */
 	if ((current - _ticks) < EXT_UPDATE_INTERVAL)
 		return;
 
@@ -165,58 +171,55 @@ run_prCommands(void* arg __unused)
 	_ticks = get_ticks();
 }
 
-/* run fix commands */
-
+/*
+ * Run fix commands.
+ */
 void
 run_prFixCmds(void* arg __unused)
 {
-	struct mibpr	*prp;
-	uint64_t	current;
+	struct mibpr *prp;
+	uint64_t current;
+	pid_t pid, res;
+	int status, fd;
 
 	current = get_ticks();
 
-	/* run commads if needed */
+	/* Run commads if needed. */
 
 	TAILQ_FOREACH(prp, &mibpr_list, link) {
-		pid_t	pid;
-		int	status;
 
 		if (!prp->errFix)
-			continue;	/* no fix */
+			continue; /* No fix. */
 
 		if (!prp->errFixCmd)
-			continue;	/* no command specified */
+			continue; /* No command specified. */
 
 		if ((current - prp->_fix_ticks) < EXT_UPDATE_INTERVAL)
-			continue; /* run command only if EXT_UPDATE_INTERVAL exceeded */
+			continue; /* EXT_UPDATE_INTERVAL has not exceeded. */
 
+		/* Execute the command in the child process. */
 		pid = fork();
 
-		/* execute the command in the child process */
-		if (pid==0) {
-			int	fd;
-
-			/* close all descriptors except stdio */
+		if (pid == 0) {
+			/* Close all descriptors except stdio. */
 			for (fd = 3; fd <= getdtablesize(); fd++)
 				close(fd);
 
-			/* fork again */
-
+			/* Fork again. */
 			if ((pid = fork()) < 0) {
 				syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 				_exit(127);
 			}
 
-			if (pid == 0) { /* grandchild */
-
-				/* become process group leader */
+			if (pid == 0) { /* Grandchild. */
+				/* Become process group leader. */
 				setpgid(0, 0);
 
-				/* trap commands that timeout */
+				/* Trap commands that timed out. */
 				signal(SIGALRM, prcmd_sighandler);
 				alarm(EXT_TIMEOUT);
 
-				/* run the command */
+				/* Run the command. */
 				status = system((char*)prp->errFixCmd);
 				if (status != 0) {
 					syslog(LOG_WARNING,
@@ -226,22 +229,21 @@ run_prFixCmds(void* arg __unused)
 				_exit(WEXITSTATUS(status));
 			}
 
-			/* parent of grandchild */
+			/* Parent of grandchild. */
 			_exit(0);
 		}
 
-		/* parent */
+		/* Parent. */
 
-		if (pid < 0)
+		if (pid == -1)
 			syslog(LOG_ERR, "Can't fork: %s: %m", __func__);
 
-		/* wait for child */
+		/* Wait for child. */
 		for (;;) {
-			pid_t res;
 			res = waitpid(pid, &status, 0);
 			if (res == -1 && errno == EINTR)
 				continue;
-			if (res <= 0)
+			if (res == -1)
 				syslog(LOG_ERR, "failed to waitpid: %s: %m", __func__);
 			break;
 		}
@@ -253,158 +255,167 @@ int
 op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
-	int ret;
-	struct mibpr *prp = NULL;
-	asn_subid_t which = value->var.subs[sub - 1];
+	struct mibpr *prp;
+	asn_subid_t which;
 	u_char buf[UCDMAXLEN];
+	int ret;
+
+	which = value->var.subs[sub - 1];
 
 	switch (op) {
-		case SNMP_OP_GETNEXT:
-			prp = NEXT_OBJECT_INT(&mibpr_list, &value->var, sub);
-			if (prp == NULL)
-				return (SNMP_ERR_NOSUCHNAME);
-			value->var.len = sub + 1;
-			value->var.subs[sub] = prp->index;
-			break;
+	case SNMP_OP_GETNEXT:
+		prp = NEXT_OBJECT_INT(&mibpr_list, &value->var, sub);
+		if (prp == NULL)
+			return (SNMP_ERR_NOSUCHNAME);
+		value->var.len = sub + 1;
+		value->var.subs[sub] = prp->index;
+		break;
 
-		case SNMP_OP_GET:
-			if (value->var.len - sub != 1)
-				return (SNMP_ERR_NOSUCHNAME);
+	case SNMP_OP_GET:
+		if (value->var.len - sub != 1)
+			return (SNMP_ERR_NOSUCHNAME);
+		prp = find_pr(value->var.subs[sub]);
+		if (prp == NULL)
+			return (SNMP_ERR_NOSUCHNAME);
+		break;
+
+	case SNMP_OP_SET:
+		switch (which) {
+		case LEAF_prNames:
+			prp = find_pr(value->var.subs[sub]);
+			if (prp == NULL) {
+				prp = malloc(sizeof(*prp));
+				if (prp == NULL) {
+					syslog(LOG_ERR,
+					    "failed to malloc: %s: %m",
+					    __func__);
+					return (SNMP_ERR_NOT_WRITEABLE);
+				}
+				memset(prp, 0, sizeof(*prp));
+				prp->index = value->var.subs[sub];
+				INSERT_OBJECT_INT(prp, &mibpr_list);
+			}
+			ret = string_save(value, context, -1, &prp->names);
+			return (ret);
+
+		case LEAF_prMin:
 			prp = find_pr(value->var.subs[sub]);
 			if (prp == NULL)
-				return (SNMP_ERR_NOSUCHNAME);
-			break;
+				return (SNMP_ERR_NOT_WRITEABLE);
+			prp->min = value->v.integer;
+			return SNMP_ERR_NOERROR;
 
-		case SNMP_OP_SET:
-			switch (which) {
-				case LEAF_prNames:
-					prp = find_pr(value->var.subs[sub]);
-					if (prp == NULL) {
-						prp = malloc(sizeof(*prp));
-						if (prp == NULL) {
-							syslog(LOG_ERR,
-							    "failed to malloc: %s: %m",
-							    __func__);
-							return (SNMP_ERR_NOT_WRITEABLE);
-						}
-						memset(prp, 0, sizeof(*prp));
-						prp->index = value->var.subs[sub];
-						INSERT_OBJECT_INT(prp, &mibpr_list);
-					}
-					return (string_save(value, context, -1, &prp->names));
+		case LEAF_prMax:
+			prp = find_pr(value->var.subs[sub]);
+			if (prp == NULL)
+				return (SNMP_ERR_NOT_WRITEABLE);
+			prp->max = value->v.integer;
+			return SNMP_ERR_NOERROR;
 
-				case LEAF_prMin:
-					prp = find_pr(value->var.subs[sub]);
-					if (prp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					prp->min = value->v.integer;
-					return SNMP_ERR_NOERROR;
+		case LEAF_prErrFix:
+			prp = find_pr(value->var.subs[sub]);
+			if (prp == NULL)
+				return (SNMP_ERR_NOT_WRITEABLE);
+			prp->errFix = value->v.integer;
+			return SNMP_ERR_NOERROR;
 
-				case LEAF_prMax:
-					prp = find_pr(value->var.subs[sub]);
-					if (prp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					prp->max = value->v.integer;
-					return SNMP_ERR_NOERROR;
-
-				case LEAF_prErrFix:
-					prp = find_pr(value->var.subs[sub]);
-					if (prp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					prp->errFix = value->v.integer;
-					return SNMP_ERR_NOERROR;
-
-				case LEAF_prErrFixCmd:
-					prp = find_pr(value->var.subs[sub]);
-					if (prp == NULL)
-						return (SNMP_ERR_NOT_WRITEABLE);
-					return (string_save(value, context, -1, &prp->errFixCmd));
-
-				default:
-					break;
-			}
-			return (SNMP_ERR_NOT_WRITEABLE);
-
-		case SNMP_OP_ROLLBACK:
-		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
+		case LEAF_prErrFixCmd:
+			prp = find_pr(value->var.subs[sub]);
+			if (prp == NULL)
+				return (SNMP_ERR_NOT_WRITEABLE);
+			ret = string_save(value, context, -1, &prp->errFixCmd);
+			return (ret);
 
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+			break;
+		}
+		return (SNMP_ERR_NOT_WRITEABLE);
+
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+		return (SNMP_ERR_NOERROR);
+
+	default:
+		return (SNMP_ERR_RES_UNAVAIL);
 	}
 
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		case LEAF_prIndex:
-			value->v.integer = prp->index;
-			break;
+	case LEAF_prIndex:
+		value->v.integer = prp->index;
+		break;
 
-		case LEAF_prNames:
-			ret = string_get(value, prp->names, -1);
-			break;
+	case LEAF_prNames:
+		ret = string_get(value, prp->names, -1);
+		break;
 
-		case LEAF_prCount:
-			value->v.integer = prp->count;
-			break;
+	case LEAF_prCount:
+		value->v.integer = prp->count;
+		break;
 
-		case LEAF_prMin:
-			value->v.integer = prp->min;
-			break;
+	case LEAF_prMin:
+		value->v.integer = prp->min;
+		break;
 
-		case LEAF_prMax:
-			value->v.integer = prp->max;
-			break;
+	case LEAF_prMax:
+		value->v.integer = prp->max;
+		break;
 
-		case LEAF_prErrorFlag:
-			if ((prp->min && prp->count < prp->min) ||
-			    (prp->max && prp->count > prp->max) ||
-			    (prp->min == 0 && prp->max == 0 && prp->count < 0))
-				value->v.integer = 1;
-			else
-				value->v.integer = 0;
-			break;
+	case LEAF_prErrorFlag:
+		if ((prp->min && prp->count < prp->min) ||
+		    (prp->max && prp->count > prp->max) ||
+		    (prp->min == 0 && prp->max == 0 && prp->count < 0)) {
+			value->v.integer = 1;
+		} else {
+			value->v.integer = 0;
+		}
+		break;
 
-		case LEAF_prErrMessage:
-			if (prp->count < 0) {
-				buf[0] = '\0'; /* Failed to count processes. */
-			} else if (prp->min && prp->count < prp->min) {
-				snprintf((char*)buf, sizeof(buf),
-				    "Too few %s running (# = %d)",
-				    prp->names, prp->count);
-			} else if (prp->max && prp->count > prp->max) {
-				snprintf((char*)buf, sizeof(buf),
-				    "Too many %s running (# = %d)",
-				    prp->names, prp->count);
-			} else if (prp->min == 0 && prp->max == 0 && prp->count < 1) {
-				snprintf((char*)buf, sizeof(buf),
-				    "No %s process running.", prp->names);
-			} else {
-				buf[0] = '\0';
-			}
-			ret = string_get(value, buf, -1);
-			break;
+	case LEAF_prErrMessage:
+		if (prp->count < 0) {
+			buf[0] = '\0'; /* Failed to count processes. */
+		} else if (prp->min && prp->count < prp->min) {
+			snprintf((char*)buf, sizeof(buf),
+			    "Too few %s running (# = %d)", prp->names,
+			    prp->count);
+		} else if (prp->max && prp->count > prp->max) {
+			snprintf((char*)buf, sizeof(buf),
+			    "Too many %s running (# = %d)", prp->names,
+			    prp->count);
+		} else if (prp->min == 0 && prp->max == 0 && prp->count < 1) {
+			snprintf((char*)buf, sizeof(buf),
+			    "No %s process running.", prp->names);
+		} else {
+			buf[0] = '\0';
+		}
+		ret = string_get(value, buf, -1);
+		break;
 
-		case LEAF_prErrFix:
-			value->v.integer = prp->errFix;
-			break;
+	case LEAF_prErrFix:
+		value->v.integer = prp->errFix;
+		break;
 
-		case LEAF_prErrFixCmd:
-			ret = string_get(value, prp->errFixCmd, -1);
-			break;
-		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
-			break;
+	case LEAF_prErrFixCmd:
+		ret = string_get(value, prp->errFixCmd, -1);
+		break;
+
+	default:
+		ret = SNMP_ERR_RES_UNAVAIL;
+		break;
 	}
 
 	return (ret);
 };
 
-/* free mibpr list */
+/*
+ * Free mibpr list.
+ */
 static void
 mibpr_free(void)
 {
-	struct mibpr *prp = NULL;
+	struct mibpr *prp;
+
 	while ((prp = first_mibpr()) != NULL) {
 		TAILQ_REMOVE (&mibpr_list, prp, link);
 		free(prp->names);
@@ -416,5 +427,6 @@ mibpr_free(void)
 void
 mibpr_fini(void)
 {
+
 	mibpr_free();
 }

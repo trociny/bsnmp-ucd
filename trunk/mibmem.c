@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Mikolaj Golub
+ * Copyright (c) 2007-2012 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@
 #include "snmp_ucd.h"
 
 /*
- * mibmemory structures and functions
+ * mibmemory structures and functions.
  */
 
 struct mibmemory {
@@ -66,9 +66,9 @@ struct mibmemory {
 
 static struct mibmemory mibmem;
 
-static kvm_t *kd;	/* initialized in init_memory() */
+static kvm_t *kd;	/* Initialized in init_memory(). */
 
-static int pagesize;	/* initialized in init_memory() */
+static int pagesize;	/* Initialized in init_memory(). */
 
 #define pagetok(size) ((size) * (pagesize >> 10))
 
@@ -89,25 +89,25 @@ swapmode(int *rettotal, int *retavail)
 	*rettotal = CONVERT(swapary[0].ksw_total);
 	*retavail = CONVERT(swapary[0].ksw_total - swapary[0].ksw_used);
 #undef  CONVERT
-
-	return;
 }
 
 /* get memory data and fill mibmem */
 
 static void
-get_mem_data (void)
+get_mem_data(void)
 {
 	static struct	vmtotal total;
-	size_t		total_size = sizeof(total);
+	size_t		total_size;
 	u_long		val;
+
+	total_size = sizeof(total);
 
 	if (sysctlbyname("vm.vmtotal", &total, &total_size, NULL, 0) < 0)
 		syslog(LOG_ERR, "sysctl filed: %s: %m", __func__);
 
 	swapmode(&mibmem.totalSwap, &mibmem.availSwap);
 
-	mibmem.swapError = (mibmem.availSwap <= mibmem.minimumSwap);
+	mibmem.swapError = mibmem.availSwap <= mibmem.minimumSwap;
 
 	sysctlval("hw.physmem", &val);
 	mibmem.totalReal = (int32_t) (val >> 10);
@@ -122,12 +122,13 @@ get_mem_data (void)
 				total.t_rmshr + total.t_armshr);
 }
 
-static uint64_t last_mem_update;	/* ticks of the last mem data update */
+static uint64_t last_mem_update;	/* Ticks of the last mem data update. */
 
-/* init all our memory objects */
-
+/*
+ * Init all our memory objects.
+ */
 void
-mibmemory_init ()
+mibmemory_init()
 {
 
 	pagesize = getpagesize();
@@ -137,7 +138,7 @@ mibmemory_init ()
 		syslog(LOG_ERR, "kvm_open failed: %s: %m", __func__);
 
 	mibmem.index = 0;
-	mibmem.errorName = (const u_char *) "swap";
+	mibmem.errorName = (const u_char *)"swap";
 	mibmem.minimumSwap = DEFAULTMINIMUMSWAP;
 	mibmem.swapErrorMsg = NULL;
 
@@ -150,8 +151,8 @@ static void
 update_memory_data(void)
 {
 
-	/* update data only once in UPDATE_INTERVAL */
-	if ((get_ticks() - last_mem_update) > UPDATE_INTERVAL) {
+	/* Update data only once in UPDATE_INTERVAL. */
+	if (get_ticks() - last_mem_update > UPDATE_INTERVAL) {
 		get_mem_data();
 		last_mem_update = get_ticks();
 	}
@@ -161,33 +162,37 @@ int
 op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
+	asn_subid_t which;
 	int ret;
-	asn_subid_t which = value->var.subs[sub - 1];
+
+	which = value->var.subs[sub - 1];
 
 	switch (op) {
-		case SNMP_OP_GET:
-			break;
+	case SNMP_OP_GET:
+		break;
 
-		case SNMP_OP_SET:
-			switch(which) {
-				case LEAF_memMinimumSwap:
-					mibmem.minimumSwap = value->v.integer;
-					return (SNMP_ERR_NOERROR);
-				case LEAF_memSwapErrorMsg:
-					return (string_save(value, context, -1, &mibmem.swapErrorMsg));
-				default:
-					break;
-			}
-			return (SNMP_ERR_NOT_WRITEABLE);
-
-		case SNMP_OP_GETNEXT:
-		case SNMP_OP_ROLLBACK:
-		case SNMP_OP_COMMIT:
+	case SNMP_OP_SET:
+		switch(which) {
+		case LEAF_memMinimumSwap:
+			mibmem.minimumSwap = value->v.integer;
 			return (SNMP_ERR_NOERROR);
-
+		case LEAF_memSwapErrorMsg:
+			ret = string_save(value, context, -1,
+			    &mibmem.swapErrorMsg);
+			return (ret);
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
 			break;
+		}
+		return (SNMP_ERR_NOT_WRITEABLE);
+
+	case SNMP_OP_GETNEXT:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+		return (SNMP_ERR_NOERROR);
+
+	default:
+		return (SNMP_ERR_RES_UNAVAIL);
+		break;
 	}
 
 	update_memory_data();
@@ -195,48 +200,48 @@ op_memory(struct snmp_context * context __unused, struct snmp_value * value,
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		case LEAF_memIndex:
-			value->v.integer = mibmem.index;
-			break;
-		case LEAF_memErrorName:
-			ret = string_get(value, mibmem.errorName, -1);
-			break;
-		case LEAF_memTotalSwap:
-			value->v.integer = mibmem.totalSwap;
-			break;
-		case LEAF_memAvailSwap:
-			value->v.integer = mibmem.availSwap;
-			break;
-		case LEAF_memTotalReal:
-			value->v.integer = mibmem.totalReal;
-			break;
-		case LEAF_memAvailReal:
-			value->v.integer = mibmem.availReal;
-			break;
-		case LEAF_memTotalFree:
-			value->v.integer = mibmem.totalFree;
-			break;
-		case LEAF_memMinimumSwap:
-			value->v.integer = mibmem.minimumSwap;
-			break;
-		case LEAF_memShared:
-			value->v.integer = mibmem.shared;
-			break;
-		case LEAF_memBuffer:
-			value->v.integer = mibmem.buffer;
-			break;
-		case LEAF_memCached:
-			value->v.integer = mibmem.cached;
-			break;
-		case LEAF_memSwapError:
-			value->v.integer = mibmem.swapError;
-			break;
-		case LEAF_memSwapErrorMsg:
-			ret = string_get(value, mibmem.swapErrorMsg, -1);
-			break;
-		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
-			break;
+	case LEAF_memIndex:
+		value->v.integer = mibmem.index;
+		break;
+	case LEAF_memErrorName:
+		ret = string_get(value, mibmem.errorName, -1);
+		break;
+	case LEAF_memTotalSwap:
+		value->v.integer = mibmem.totalSwap;
+		break;
+	case LEAF_memAvailSwap:
+		value->v.integer = mibmem.availSwap;
+		break;
+	case LEAF_memTotalReal:
+		value->v.integer = mibmem.totalReal;
+		break;
+	case LEAF_memAvailReal:
+		value->v.integer = mibmem.availReal;
+		break;
+	case LEAF_memTotalFree:
+		value->v.integer = mibmem.totalFree;
+		break;
+	case LEAF_memMinimumSwap:
+		value->v.integer = mibmem.minimumSwap;
+		break;
+	case LEAF_memShared:
+		value->v.integer = mibmem.shared;
+		break;
+	case LEAF_memBuffer:
+		value->v.integer = mibmem.buffer;
+		break;
+	case LEAF_memCached:
+		value->v.integer = mibmem.cached;
+		break;
+	case LEAF_memSwapError:
+		value->v.integer = mibmem.swapError;
+		break;
+	case LEAF_memSwapErrorMsg:
+		ret = string_get(value, mibmem.swapErrorMsg, -1);
+		break;
+	default:
+		ret = SNMP_ERR_RES_UNAVAIL;
+		break;
 	}
 
 	return (ret);

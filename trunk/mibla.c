@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Mikolaj Golub
+ * Copyright (c) 2007-2012 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
 #include "snmp_ucd.h"
 
 /*
- * mibla structures and functions
+ * mibla structures and functions.
  */
 
 struct mibla {
@@ -52,15 +52,19 @@ struct mibla {
 
 static struct mibla mibla[3];
 
-static uint64_t last_la_update;	/* ticks of the last la data update */
+static uint64_t last_la_update;	/* Ticks of the last la data update. */
 
-static const u_char *la_names[] = {(const u_char *) "Load-1", (const u_char *) "Load-5", (const u_char *) "Load-15"};
+static const u_char *la_names[] = {
+    (const u_char *)"Load-1",
+    (const u_char *)"Load-5",
+    (const u_char *)"Load-15"
+};
 
 void
 mibla_init()
 {
-	int i;
 	double sys_la[3];
+	int i;
 
 	if (getloadavg(sys_la, 3) != 3)
 		syslog(LOG_ERR, "getloadavg failed: %s: %m", __func__);
@@ -68,9 +72,10 @@ mibla_init()
 	for (i=0; i < 3; i++) {
 		mibla[i].index = i + 1;
 		mibla[i].name = la_names[i];
-		snprintf ((char *) mibla[i].load, sizeof(mibla[i].load), "%.2f", sys_la[i]);
-		mibla[i].config = (u_char *) strdup(LACONFIG);
-		mibla[i].loadInt = (int) (100 * sys_la[i]);
+		snprintf((char *)mibla[i].load, sizeof(mibla[i].load), "%.2f",
+		    sys_la[i]);
+		mibla[i].config = (u_char *)strdup(LACONFIG);
+		mibla[i].loadInt = (int)(100 * sys_la[i]);
 		mibla[i].errorFlag = 0;
 		mibla[i].errMessage = NULL;
 	}
@@ -81,11 +86,10 @@ static void
 update_la_data(void)
 {
 	double sys_la[3];
+	int i;
 
-	/* update data only once in UPDATE_INTERVAL */
+	/* Update data only once in UPDATE_INTERVAL. */
 	if ((get_ticks() - last_la_update) > UPDATE_INTERVAL) {
-		int i;
-
 		if (getloadavg(sys_la, 3) != 3)
 			syslog(LOG_ERR, "getloadavg failed: %s: %m", __func__);
 
@@ -95,7 +99,7 @@ update_la_data(void)
 			    "%.2f", sys_la[i]);
 			mibla[i].loadInt = (int) (100 * sys_la[i]);
 			crit = strtof((char *) mibla[i].config, NULL);
-			mibla[i].errorFlag = ((crit > 0) && (sys_la[i] >= crit));
+			mibla[i].errorFlag = (crit > 0 && sys_la[i] >= crit);
 		}
 		last_la_update = get_ticks();
 	}
@@ -105,45 +109,51 @@ int
 op_laTable(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
-	int ret, i = 0;
-	asn_subid_t which = value->var.subs[sub - 1];
+	asn_subid_t which;
+	int ret, i;
+
+	which = value->var.subs[sub - 1];
 
 	switch (op) {
-		case SNMP_OP_GETNEXT:
-			i = value->var.subs[sub]++;
-			if (i > 2)
-				return (SNMP_ERR_NOSUCHNAME);
-			value->var.len = sub + 1;
-			break;
+	case SNMP_OP_GETNEXT:
+		i = value->var.subs[sub]++;
+		if (i > 2)
+			return (SNMP_ERR_NOSUCHNAME);
+		value->var.len = sub + 1;
+		break;
 
-		case SNMP_OP_GET:
-			if (value->var.len - sub != 1)
-				return (SNMP_ERR_NOSUCHNAME);
-			if ((i = value->var.subs[sub] - 1) > 2)
-				return (SNMP_ERR_NOSUCHNAME);
-			break;
+	case SNMP_OP_GET:
+		if (value->var.len - sub != 1)
+			return (SNMP_ERR_NOSUCHNAME);
+		if ((i = value->var.subs[sub] - 1) > 2)
+			return (SNMP_ERR_NOSUCHNAME);
+		break;
 
-		case SNMP_OP_SET:
-			if (value->var.len - sub != 1)
-				return (SNMP_ERR_NOSUCHNAME);
-			if ((i = value->var.subs[sub] - 1) > 2)
-				return (SNMP_ERR_NOSUCHNAME);
-			switch(which) {
-				case LEAF_laConfig:
-					return (string_save(value, context, -1, &mibla[i].config));
-				case LEAF_laErrMessage:
-					return (string_save(value, context, -1, &mibla[i].errMessage));
-				default:
-					break;
-			}
-			return (SNMP_ERR_NOT_WRITEABLE);
-
-		case SNMP_OP_ROLLBACK:
-		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
-
+	case SNMP_OP_SET:
+		if (value->var.len - sub != 1)
+			return (SNMP_ERR_NOSUCHNAME);
+		if ((i = value->var.subs[sub] - 1) > 2)
+			return (SNMP_ERR_NOSUCHNAME);
+		switch(which) {
+		case LEAF_laConfig:
+			ret = string_save(value, context, -1,
+			    &mibla[i].config);
+			return (ret);
+		case LEAF_laErrMessage:
+			ret = string_save(value, context, -1,
+			    &mibla[i].errMessage);
+			return (ret);
 		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+			break;
+		}
+		return (SNMP_ERR_NOT_WRITEABLE);
+
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+		return (SNMP_ERR_NOERROR);
+
+	default:
+		return (SNMP_ERR_RES_UNAVAIL);
 	}
 
 	update_la_data();
@@ -151,37 +161,37 @@ op_laTable(struct snmp_context * context __unused, struct snmp_value * value,
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		case LEAF_laIndex:
-			value->v.integer = mibla[i].index;
-			break;
+	case LEAF_laIndex:
+		value->v.integer = mibla[i].index;
+		break;
 
-		case LEAF_laNames:
-			ret = string_get(value, mibla[i].name, -1);
-			break;
+	case LEAF_laNames:
+		ret = string_get(value, mibla[i].name, -1);
+		break;
 
-		case LEAF_laLoad:
-			ret = string_get(value, mibla[i].load, -1);
-			break;
+	case LEAF_laLoad:
+		ret = string_get(value, mibla[i].load, -1);
+		break;
 
-		case LEAF_laConfig:
-			ret = string_get(value, mibla[i].config, -1);
-			break;
+	case LEAF_laConfig:
+		ret = string_get(value, mibla[i].config, -1);
+		break;
 
-		case LEAF_laLoadInt:
-			value->v.integer = mibla[i].loadInt;
-			break;
+	case LEAF_laLoadInt:
+		value->v.integer = mibla[i].loadInt;
+		break;
 
-		case LEAF_laErrorFlag:
-			value->v.integer = mibla[i].errorFlag;
-			break;
+	case LEAF_laErrorFlag:
+		value->v.integer = mibla[i].errorFlag;
+		break;
 
-		case LEAF_laErrMessage:
-			ret = string_get(value, mibla[i].errMessage, -1);
-			break;
+	case LEAF_laErrMessage:
+		ret = string_get(value, mibla[i].errMessage, -1);
+		break;
 
-		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
-			break;
+	default:
+		ret = SNMP_ERR_RES_UNAVAIL;
+		break;
 	}
 
 	return (ret);
