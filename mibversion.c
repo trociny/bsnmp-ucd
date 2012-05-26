@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Mikolaj Golub
+ * Copyright (c) 2007-2012 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 /*
  * Change this serial when releasing new version just to update varibles.
  *
- * serial = 1982
+ * serial = 1983
  *
  */
 
@@ -43,11 +43,11 @@
 #include "snmp_ucd.h"
 
 /*
- * mibversion structures and functions
+ * mibversion structures and functions.
  */
 
 struct mibversion {
-	uint32_t	index;		/* always 0 */
+	uint32_t	index;		/* Always 0. */
 	const u_char 	*tag;
 	const u_char 	*date;
 	u_char		cDate[UCDMAXLEN];
@@ -57,16 +57,17 @@ struct mibversion {
 
 static struct mibversion mibver;
 
-/* fill our version info */
-
+/*
+ * Fill our version info.
+ */
 void
 mibversion_init()
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*) "$Name: bsnmp-ucd-0-3-3 $";
-	mibver.date = (const u_char*) "$Date$";
-	mibver.ident = (const u_char*) "$Id$";
-	mibver.configureOptions = (const u_char*) "";
+	mibver.tag = (const u_char*)"$Name: bsnmp-ucd-0-3-4 $";
+	mibver.date = (const u_char*)"$Date$";
+	mibver.ident = (const u_char*)"$Id$";
+	mibver.configureOptions = (const u_char*)"";
 }
 
 static void
@@ -76,10 +77,11 @@ set_cDate(void)
 	int end;
 
 	sec = time(NULL);
-	snprintf((char *) mibver.cDate, sizeof(mibver.cDate), "%s", ctime(&sec));
-	/* chop 'end of line' */
+	snprintf((char *)mibver.cDate, sizeof(mibver.cDate), "%s",
+	    ctime(&sec));
+	/* Chop 'end of line'. */
 	end = strlen((char*) mibver.cDate) - 1;
-	if ((end >= 0) && (mibver.cDate[end] == '\n'))
+	if (end >= 0 && mibver.cDate[end] == '\n')
 		mibver.cDate[end] = '\0';
 }
 
@@ -87,50 +89,58 @@ int
 op_version(struct snmp_context * context __unused, struct snmp_value * value,
 	u_int sub, u_int iidx __unused, enum snmp_op op)
 {
+	asn_subid_t which;
 	int ret;
-	asn_subid_t which = value->var.subs[sub - 1];
+
+	which = value->var.subs[sub - 1];
 
 	switch (op) {
-		case SNMP_OP_GET:
-			break;
+	case SNMP_OP_GET:
+		break;
 
-		case SNMP_OP_SET:
-			return (SNMP_ERR_NOT_WRITEABLE);
+	case SNMP_OP_SET:
+		return (SNMP_ERR_NOT_WRITEABLE);
 
-		case SNMP_OP_GETNEXT:
-		case SNMP_OP_ROLLBACK:
-		case SNMP_OP_COMMIT:
-			return (SNMP_ERR_NOERROR);
+	case SNMP_OP_GETNEXT:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
+		return (SNMP_ERR_NOERROR);
 
-		default:
-			return (SNMP_ERR_RES_UNAVAIL);
+	default:
+		return (SNMP_ERR_RES_UNAVAIL);
 	}
 
 	ret = SNMP_ERR_NOERROR;
 
 	switch (which) {
-		case LEAF_memIndex:
-			value->v.integer = mibver.index;
-			break;
-		case LEAF_versionTag:
-			ret = string_get(value, mibver.tag, -1);
-			break;
-		case LEAF_versionDate:
-			ret = string_get(value, mibver.date, -1);
-			break;
-		case LEAF_versionCDate:
-			set_cDate();
-			ret = string_get(value, mibver.cDate, -1);
-			break;
-		case LEAF_versionIdent:
-			ret = string_get(value, mibver.ident, -1);
-			break;
-		case LEAF_versionConfigureOptions:
-			ret = string_get(value, mibver.configureOptions, -1);
-			break;
-		default:
-			ret = SNMP_ERR_RES_UNAVAIL;
-			break;
+	case LEAF_memIndex:
+		value->v.integer = mibver.index;
+		break;
+
+	case LEAF_versionTag:
+		ret = string_get(value, mibver.tag, -1);
+		break;
+
+	case LEAF_versionDate:
+		ret = string_get(value, mibver.date, -1);
+		break;
+
+	case LEAF_versionCDate:
+		set_cDate();
+		ret = string_get(value, mibver.cDate, -1);
+		break;
+
+	case LEAF_versionIdent:
+		ret = string_get(value, mibver.ident, -1);
+		break;
+
+	case LEAF_versionConfigureOptions:
+		ret = string_get(value, mibver.configureOptions, -1);
+		break;
+
+	default:
+		ret = SNMP_ERR_RES_UNAVAIL;
+		break;
 	}
 
 	return (ret);
