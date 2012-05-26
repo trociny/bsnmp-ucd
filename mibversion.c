@@ -30,7 +30,7 @@
 /*
  * Change this serial when releasing new version just to update varibles.
  *
- * serial = 1982
+ * serial = 1983
  *
  */
 
@@ -64,7 +64,7 @@ void
 mibversion_init()
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*)"$Name: bsnmp-ucd-0-3-3 $";
+	mibver.tag = (const u_char*)"$Name: bsnmp-ucd-0-3-4 $";
 	mibver.date = (const u_char*)"$Date$";
 	mibver.ident = (const u_char*)"$Id$";
 	mibver.configureOptions = (const u_char*)"";

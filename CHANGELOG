@@ -1,9 +1,11 @@
 bsnmp-ucd (0.3.4)
 
-  * Set dskErrorFlag and dskErrorMsg when the disk free space less
-    than dskMinimum or dskMinPercent.
+  * Set dskErrorFlag and dskErrorMsg when disk free space less than
+    dskMinimum or dskMinPercent.
 
--- Mikolaj Golub <to.my.trociny@gmail.com> 2012/XX/XX
+  * Cleanup and small bugfixes.
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2012/05/26
 
 bsnmp-ucd (0.3.3)
 
