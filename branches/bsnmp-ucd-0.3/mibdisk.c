@@ -325,8 +325,8 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 		if (dp->errorFlag) {
 			if (dp->minimum >= 0) {
 				snprintf((char*)buf, sizeof(buf),
-				    "%s: less than %d free (= %llu)", dp->path,
-				    dp->minimum, dp->avail);
+				    "%s: less than %d free (= %ju)", dp->path,
+				    dp->minimum, (uintmax_t)dp->avail);
 			} else {
 				snprintf((char*)buf, sizeof(buf),
 				    "%s: less than %d%% free (= %d%%)",
