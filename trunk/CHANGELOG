@@ -1,3 +1,9 @@
+bsnmp-ucd (0.3.5)
+
+  * Fix build on amd64. 
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2012/05/28
+
 bsnmp-ucd (0.3.4)
 
   * Set dskErrorFlag and dskErrorMsg when disk free space less than
