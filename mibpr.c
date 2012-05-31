@@ -197,6 +197,12 @@ run_prFixCmds(void* arg __unused)
 		if ((current - prp->_fix_ticks) < EXT_UPDATE_INTERVAL)
 			continue; /* EXT_UPDATE_INTERVAL has not exceeded. */
 
+		if (prp->count < 0 ||
+		    ((prp->min == 0 || prp->count >= prp->min) &&
+		     (prp->max == 0 || prp->count <= prp->max) &&
+		     (prp->min != 0 || prp->max != 0 || prp->count <= 0)))
+			continue; /* All constraints are satisfied */
+
 		/* Execute the command in the child process. */
 		pid = fork();
 
