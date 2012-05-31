@@ -363,9 +363,10 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 		break;
 
 	case LEAF_prErrorFlag:
-		if ((prp->min && prp->count < prp->min) ||
-		    (prp->max && prp->count > prp->max) ||
-		    (prp->min == 0 && prp->max == 0 && prp->count < 0)) {
+		if (prp->count >= 0 &&
+		    ((prp->min != 0 && prp->count < prp->min) ||
+		     (prp->max != 0 && prp->count > prp->max) ||
+		     (prp->min == 0 && prp->max == 0 && prp->count > 0))) {
 			value->v.integer = 1;
 		} else {
 			value->v.integer = 0;
@@ -385,7 +386,7 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 			    prp->count);
 		} else if (prp->min == 0 && prp->max == 0 && prp->count < 1) {
 			snprintf((char*)buf, sizeof(buf),
-			    "No %s process running.", prp->names);
+			    "%s process should not be running.", prp->names);
 		} else {
 			buf[0] = '\0';
 		}
