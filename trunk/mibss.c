@@ -148,6 +148,8 @@ mibss_init()
 	memset(&mibss, 0, sizeof(mibss));
 	mibss.index = 1;
 	mibss.errorName = (const u_char *)"systemStats";
+
+	get_ss_data(NULL);
 }
 
 void
