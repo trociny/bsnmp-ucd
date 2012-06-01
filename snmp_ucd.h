@@ -59,7 +59,7 @@ extern void mibmemory_init (void);
 
 /* mibss.c */
 extern void mibss_init (void);
-extern void get_ss_data (void*);
+extern void update_ss_data (void*);
 
 /* mibext.c */
 extern void mibext_fini (void);
@@ -73,7 +73,7 @@ extern void mibdisk_init (void);
 /* mibdio.c */
 extern void mibdio_fini (void);
 extern void mibdio_init (void);
-extern void get_dio_data (void*);
+extern void update_dio_data (void*);
 
 /* mibpr.c */
 extern void mibpr_fini (void);
