@@ -89,7 +89,7 @@ static int pagesize;	/* Initialized in init_mibss(). */
  *  (This has been stolen from BSD top utility)
  *
  *  percentages(cnt, out, new, old, diffs) - calculate percentage change
- *	between array "old" and "new", putting the percentages i "out".
+ *	between array "old" and "new", putting the percentages in "out".
  *	"cnt" is size of each array and "diffs" is used for scratch space.
  *	The array "old" is updated on each call.
  *	The routine assumes modulo arithmetic.  This function is especially
