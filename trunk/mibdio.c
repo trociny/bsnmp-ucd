@@ -32,6 +32,7 @@
 #include <sys/resource.h>
 
 #include <devstat.h>
+#include <math.h>
 #include <paths.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,8 +54,12 @@ struct mibdio {
 	int32_t			nWritten;
 	int32_t			reads;
 	int32_t			writes;
+	double			la1;
+	double			la5;
+	double			la15;
 	uint64_t		nReadX;
 	uint64_t		nWrittenX;
+	struct bintime		_busy_time;
 };
 
 TAILQ_HEAD(mibdio_list, mibdio);
@@ -64,6 +69,7 @@ static struct mibdio_list mibdio_list = TAILQ_HEAD_INITIALIZER(mibdio_list);
 static int version_ok;			/* Userland and kernel match. */
 static int ondevs;			/* Old number of devices. */
 static uint64_t last_dio_update;	/* Ticks of the last disk data update. */
+static double exp1, exp5, exp15;	/* DiskIOLA exponents. */
 
 static struct mibdio *
 find_dio (int32_t idx)
@@ -92,22 +98,19 @@ mibdio_free (void)
 	}
 }
 
-static int
-update_dio_data(void)
+void
+get_dio_data(void *arg __unused)
 {
 	struct statinfo stats;
 	struct devinfo dinfo;
 	struct mibdio *diop;
 	struct devstat dev;
+	double interval, busy_time, percent;
+	uint64_t now;
 	int i, res, ndevs;
 
 	if (!version_ok)
-		return (-1);
-
-	if ((get_ticks() - last_dio_update) < UPDATE_INTERVAL)
-		return (0);
-
-	last_dio_update = get_ticks();
+		return;
 
 	memset(&stats, 0, sizeof(stats));
 	memset(&dinfo, 0, sizeof(dinfo));
@@ -117,7 +120,7 @@ update_dio_data(void)
 
 	if (res == -1) {
 		syslog(LOG_ERR, "devstat_getdevs failed: %s: %m", __func__);
-		return (-1);
+		return;
 	}
 
 	ndevs = stats.dinfo->numdevs;
@@ -133,7 +136,7 @@ update_dio_data(void)
 			if (diop == NULL) {
 				syslog(LOG_ERR, "failed to malloc: %s: %m",
 				    __func__);
-				return (-1);
+				return;
 			}
 			memset(diop, 0, sizeof(*diop));
 			diop->index = i + 1;
@@ -141,6 +144,14 @@ update_dio_data(void)
 		}
 		ondevs = ndevs;
 	}
+
+	now = get_ticks();
+	interval = (double)(now - last_dio_update) / 100;
+	last_dio_update = now;
+
+	exp1 = exp(-interval / 60);
+	exp5 = exp(-interval / 300);
+	exp15 = exp(-interval / 900);
 
 	/*
 	 * Fill mibdio list with devstat data.
@@ -156,6 +167,18 @@ update_dio_data(void)
 		diop->writes = (int32_t)dev.operations[DEVSTAT_WRITE];
 		diop->nReadX = dev.bytes[DEVSTAT_READ];
 		diop->nWrittenX = dev.bytes[DEVSTAT_WRITE];
+		if (diop->_busy_time.sec > 0) {
+			busy_time = dev.busy_time.sec - diop->_busy_time.sec +
+			    (double)(dev.busy_time.frac - diop->_busy_time.frac)
+			    / 0xffffffffffffffffull;
+			if (busy_time < 0) /* FP loss of precision near zero. */
+				busy_time = 0;
+			percent = busy_time * 100 / interval;
+			diop->la1 = diop->la1 * exp1 + percent * (1. - exp1);
+			diop->la5 = diop->la5 * exp5 + percent * (1. - exp5);
+			diop->la15 = diop->la15 * exp15 + percent * (1. - exp15);
+		}
+		diop->_busy_time = dev.busy_time;
 	}
 
 	/*
@@ -164,7 +187,7 @@ update_dio_data(void)
 	free(stats.dinfo->mem_ptr);
 	stats.dinfo->mem_ptr = NULL;
 
-	return (0);
+	return;
 }
 
 int
@@ -174,8 +197,6 @@ op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 	struct mibdio *diop;
 	asn_subid_t which;
 	int ret;
-
-	update_dio_data();
 
 	which = value->var.subs[sub - 1];
 
@@ -234,6 +255,18 @@ op_diskIOTable(struct snmp_context *context __unused, struct snmp_value *value,
 		value->v.uint32 = diop->writes;
 		break;
 
+	case LEAF_diskIOLA1:
+		value->v.uint32 = diop->la1;
+		break;
+
+	case LEAF_diskIOLA5:
+		value->v.uint32 = diop->la5;
+		break;
+
+	case LEAF_diskIOLA15:
+		value->v.uint32 = diop->la15;
+		break;
+
 	case LEAF_diskIONReadX:
 		value->v.counter64 = diop->nReadX;
 		break;
@@ -260,7 +293,6 @@ mibdio_fini(void)
 void
 mibdio_init(void)
 {
-
 	if ( devstat_checkversion(NULL) == -1) {
 		syslog(LOG_ERR,
 		    "userland and kernel devstat version mismatch: %s",
@@ -269,4 +301,6 @@ mibdio_init(void)
 	} else {
 		version_ok = 1;
 	}
+
+	get_dio_data(NULL);
 }

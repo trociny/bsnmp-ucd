@@ -73,6 +73,7 @@ extern void mibdisk_init (void);
 /* mibdio.c */
 extern void mibdio_fini (void);
 extern void mibdio_init (void);
+extern void get_dio_data (void*);
 
 /* mibpr.c */
 extern void mibpr_fini (void);
