@@ -54,8 +54,6 @@ ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 
 	mibss_init();
 
-	get_ss_data(NULL);
-
 	timer_ss = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
 				get_ss_data, NULL, mod);
 
