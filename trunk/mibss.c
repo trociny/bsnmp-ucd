@@ -149,11 +149,11 @@ mibss_init()
 	mibss.index = 1;
 	mibss.errorName = (const u_char *)"systemStats";
 
-	get_ss_data(NULL);
+	update_ss_data(NULL);
 }
 
 void
-get_ss_data(void* arg  __unused)
+update_ss_data(void* arg  __unused)
 {
 	static int32_t oswappgsin = -1;
 	static int32_t oswappgsout = -1;

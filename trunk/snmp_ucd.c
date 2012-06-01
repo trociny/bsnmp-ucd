@@ -55,7 +55,7 @@ ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	mibss_init();
 
 	timer_ss = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				get_ss_data, NULL, mod);
+				update_ss_data, NULL, mod);
 
 	timer_ext = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
 				run_extCommands, NULL, mod);
@@ -74,7 +74,7 @@ ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 	mibdio_init();
 
 	timer_dio = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				get_dio_data, NULL, mod);
+				update_dio_data, NULL, mod);
 	mibversion_init();
 
 	return (0);

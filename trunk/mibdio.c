@@ -99,7 +99,7 @@ mibdio_free (void)
 }
 
 void
-get_dio_data(void *arg __unused)
+update_dio_data(void *arg __unused)
 {
 	struct statinfo stats;
 	struct devinfo dinfo;
@@ -302,5 +302,5 @@ mibdio_init(void)
 		version_ok = 1;
 	}
 
-	get_dio_data(NULL);
+	update_dio_data(NULL);
 }
