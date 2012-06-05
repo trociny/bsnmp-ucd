@@ -69,7 +69,7 @@ static int ondevs;			/* Old number of devices. */
 static uint64_t last_disk_update;	/* Ticks of the last disk data update. */
 
 static struct mibdisk *
-find_disk (int32_t idx)
+find_disk(int32_t idx)
 {
 	struct mibdisk *dp;
 
@@ -83,7 +83,7 @@ find_disk (int32_t idx)
  * Free mibdisk list starting from the specified index.
  */
 static void
-mibdisk_free (int32_t idx)
+mibdisk_free(int32_t idx)
 {
 	struct mibdisk *dp, *next;
 
