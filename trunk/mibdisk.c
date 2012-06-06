@@ -135,7 +135,7 @@ update_disk_data(void)
 	 * Realloc mibdio if number of devices has changed.
 	 */
 	if (ndevs < ondevs) {
-		mibdisk_free(ndevs);
+		mibdisk_free(ndevs + 1);
 	} else if (ndevs > ondevs) {
 		for(i = ondevs; i < ndevs; i++) {
 			dp = malloc(sizeof(*dp));
