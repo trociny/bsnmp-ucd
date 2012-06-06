@@ -7,7 +7,7 @@ bsnmp-ucd (0.3.6)
   * Follow net-snmp behavior and don't set prErrorFlag if bsnmpd failed
     to count processes.
 
-  * Fix the crash in mibdio after removing a disk. Submitted by Brian
+  * Fix the crash in mibdio after unmounting a disk. Submitted by Brian
     Somers <brian@FreeBSD.org>
 
   * diskIOLA1/5/15 support.
