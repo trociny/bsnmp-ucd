@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Mikolaj Golub
+ * Copyright (c) 2007-2012 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,8 @@ static const struct asn_oid oid_ucdavis = OIDX_ucdavis;
 static u_int ucdavis_index = 0;
 
 /* timer id */
-static void	*timer_ss, *timer_ext, *timer_fix, *timer_pr, *timer_prfix;
+static void *timer_ss, *timer_ext, *timer_fix, *timer_pr, *timer_prfix,
+    *timer_dio;
 
 /* the initialisation function */
 static int
@@ -53,10 +54,8 @@ ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 
 	mibss_init();
 
-	get_ss_data(NULL);
-
 	timer_ss = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				get_ss_data, NULL, mod);
+				update_ss_data, NULL, mod);
 
 	timer_ext = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
 				run_extCommands, NULL, mod);
@@ -74,6 +73,8 @@ ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 
 	mibdio_init();
 
+	timer_dio = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
+				update_dio_data, NULL, mod);
 	mibversion_init();
 
 	return (0);
@@ -96,6 +97,7 @@ ucd_fini(void)
 	timer_stop(timer_fix);
 	timer_stop(timer_pr);
 	timer_stop(timer_prfix);
+	timer_stop(timer_dio);
 	mibext_fini();
 	mibdisk_fini();
 	mibdio_fini();

@@ -1,3 +1,21 @@
+bsnmp-ucd (0.3.6)
+
+  * For prTable run fix command only when troubles with the process(es)
+    are detected. Before this, fix command ran unconditionally every 30
+    seconds. Submitted by Eugene Grosbein <eugen@grosbein.net>.
+
+  * Follow net-snmp behavior and don't set prErrorFlag if bsnmpd failed
+    to count processes.
+
+  * Fix the crash in mibdio after unmounting a disk. Submitted by Brian
+    Somers <brian@FreeBSD.org>
+
+  * diskIOLA1/5/15 support.
+
+  * Cleanup.
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2012/06/09
+
 bsnmp-ucd (0.3.5)
 
   * Fix build on amd64. 

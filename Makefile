@@ -13,7 +13,7 @@ MAN8=	bsnmp-${MOD}.8
 
 XSYM=	ucdavis
 
-LDADD=	-lkvm -ldevstat
+LDADD=	-lkvm -ldevstat -lm
 
 WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 	-Wstrict-prototypes -Wmissing-prototypes \
