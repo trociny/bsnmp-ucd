@@ -65,34 +65,34 @@ extern u_int ext_update_interval;
 /* Ext command execution timeout in sec. */
 extern u_int ext_timeout;
 
-extern void mibconfig_init (void);
+extern void mibconfig_init(void);
 
 /* mibla.c */
-extern void mibla_init (void);
+extern void mibla_init(void);
 
 /* mibmem.c */
-extern void mibmemory_init (void);
+extern void mibmemory_init(void);
 
 /* mibss.c */
-extern void mibss_init (void);
+extern void mibss_init(void);
 
 /* mibext.c */
 extern void mibext_init(void);
-extern void mibext_fini (void);
+extern void mibext_fini(void);
 
 /* mibdisk,c */
-extern void mibdisk_fini (void);
-extern void mibdisk_init (void);
+extern void mibdisk_fini(void);
+extern void mibdisk_init(void);
 
 /* mibdio.c */
-extern void mibdio_fini (void);
-extern void mibdio_init (void);
+extern void mibdio_fini(void);
+extern void mibdio_init(void);
 
 /* mibpr.c */
 extern void mibpr_init(void);
-extern void mibpr_fini (void);
+extern void mibpr_fini(void);
 
 /* mibversion.c */
-extern void mibversion_init (void);
+extern void mibversion_init(void);
 
 #endif /* SNMP_UCD_H */
