@@ -3,6 +3,21 @@
 #
 # $Id$
 
+PREFIX?=	/usr/local
+
+LIBDIR?=	${PREFIX}/lib
+MANDIR?= 	${PREFIX}/man
+EXAMPLEDIR?=	${PREFIX}/share/examples
+
+MKDIR?=			mkdir -p
+BSD_INSTALL_DATA?=	install -m 444
+
+LIBTOOL?=	libtool
+GENSNMPTREE?=	gensnmptree
+
+SHLIB_MAJOR=	1
+SHLIB_MINOR=	0
+
 MOD=	ucd
 SRCS=	${MOD}_tree.c snmp_${MOD}.c utils.c \
 	mibconfig.c mibdio.c mibdisk.c mibext.c mibla.c mibmem.c mibpr.c \
@@ -25,33 +40,21 @@ WARNS=	-Wsystem-headers -Werror -Wall -Wno-format-y2k -W \
 CFLAGS +=	${WARNS}
 
 LIB=	snmp_${MOD}.la
-SHLIB_MAJOR=	1
-SHLIB_MINOR=	0
 
-LIBTOOL=	libtool
-GENSNMPTREE=	gensnmptree
+CLEANFILES+=	*.la *.lo *.o .libs
+CLEANFILES+=	${MOD}_oid.h ${MOD}_tree.c ${MOD}_tree.h
 
-PREFIX ?=	/usr/local
+all:	${LIB}
 
-LIBDIR =	${PREFIX}/lib
-MANDIR = 	${PREFIX}/man
-EXAMPLEDIR =	${PREFIX}/share/examples
-
-CLEANFILES +=	*.la *.lo *.o .libs
-CLEANFILES +=	${MOD}_oid.h ${MOD}_tree.c ${MOD}_tree.h
-
-INSTALL_DIR=	install  -d -o root -g wheel -m 755
-INSTALL_DATA=	install  -o root -g wheel -m 444
-
-all:	$(LIB)
-
-$(LIB): ${MOD}_oid.h ${MOD}_tree.h $(SRCS:.c=.lo)
-	$(LIBTOOL) --mode=link $(CC) $(LDADD) $(LDLAGS) -module -o ${.TARGET} $(SRCS:.c=.lo) -rpath $(LIBDIR) -version-info $(SHLIB_MAJOR):$(SHLIB_MINOR)
+${LIB}: ${MOD}_oid.h ${MOD}_tree.h ${SRCS:.c=.lo}
+	${LIBTOOL} --mode=link ${CC} ${LDADD} ${LDLAGS} -module -o ${.TARGET} \
+		${SRCS:.c=.lo} -rpath ${LIBDIR} \
+		-version-info ${SHLIB_MAJOR}:${SHLIB_MINOR}
 
 .SUFFIXES: .lo
 
-$(SRCS:.c=.lo): $(SRCS) ${MOD}_oid.h ${MOD}_tree.h $(INCS)
-	$(LIBTOOL) --mode=compile $(CC) -c $(CFLAGS) -o ${.TARGET} ${.PREFIX}.c
+${SRCS:.c=.lo}: ${SRCS} ${MOD}_oid.h ${MOD}_tree.h ${INCS}
+	${LIBTOOL} --mode=compile ${CC} -c ${CFLAGS} -o ${.TARGET} ${.PREFIX}.c
 
 ${MOD}_oid.h: ${MOD}_tree.def
 	${GENSNMPTREE} <${MOD}_tree.def -e ${XSYM} > ${.TARGET}
@@ -59,15 +62,16 @@ ${MOD}_oid.h: ${MOD}_tree.def
 ${MOD}_tree.h ${MOD}_tree.c : ${MOD}_tree.def
 	${GENSNMPTREE} <${MOD}_tree.def -p ${MOD}_
 
-install: $(LIB)
-	@$(INSTALL_DIR) $(LIBDIR)
-	$(LIBTOOL) --mode=install $(INSTALL_DATA) $(LIB) $(LIBDIR)
-	@$(INSTALL_DIR) $(MANDIR)/man8
-	for f in $(MAN8) ; do \
-		$(INSTALL_DATA) $${f} $(MANDIR)/man8/$${f} ; \
-	done
-	@$(INSTALL_DIR) $(EXAMPLEDIR)/bsnmp-${MOD}
-	$(INSTALL_DATA) snmpd.config.sample $(EXAMPLEDIR)/bsnmp-${MOD}/snmpd.config.sample
+install: ${LIB}
+	@${MKDIR} ${DESTDIR}${LIBDIR}
+	${LIBTOOL} --mode=install ${BSD_INSTALL_DATA} ${LIB} ${DESTDIR}${LIBDIR}
+	@${MKDIR} ${DESTDIR}${MANDIR}/man8
+.for f in ${MAN8}
+	${BSD_INSTALL_DATA} ${f} ${DESTDIR}${MANDIR}/man8/${f}
+.endfor
+	@${MKDIR} ${DESTDIR}${EXAMPLEDIR}/bsnmp-${MOD}
+	${BSD_INSTALL_DATA} snmpd.config.sample \
+		${DESTDIR}${EXAMPLEDIR}/bsnmp-${MOD}/snmpd.config.sample
 
 clean:
 	rm -Rf ${CLEANFILES}

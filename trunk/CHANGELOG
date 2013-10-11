@@ -3,6 +3,8 @@ bsnmp-ucd (0.3.7)
   * Instead of having hardcoded, allow to change polling intervals and
     timeouts either via configuration file or using snmpset.
 
+  * Prepare Makefile for ports STAGE.
+
 -- Mikolaj Golub <to.my.trociny@gmail.com> 2013/10/XX
 
 bsnmp-ucd (0.3.6)
@@ -25,7 +27,7 @@ bsnmp-ucd (0.3.6)
 
 bsnmp-ucd (0.3.5)
 
-  * Fix build on amd64. 
+  * Fix build on amd64.
 
 -- Mikolaj Golub <to.my.trociny@gmail.com> 2012/05/28
 
