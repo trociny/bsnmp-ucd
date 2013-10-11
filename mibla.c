@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -88,8 +88,8 @@ update_la_data(void)
 	double sys_la[3];
 	int i;
 
-	/* Update data only once in UPDATE_INTERVAL. */
-	if ((get_ticks() - last_la_update) > UPDATE_INTERVAL) {
+	/* Update data only once in update_interval. */
+	if ((get_ticks() - last_la_update) > update_interval) {
 		if (getloadavg(sys_la, 3) != 3)
 			syslog(LOG_ERR, "getloadavg failed: %s: %m", __func__);
 

@@ -62,7 +62,9 @@ With
 .Nm
 you can also extend bsnmpd agent functionality specifying arbitrary
 commands in UCD-SNMP-MIB::extTable. To add new command you should add
-following lines in snmpd.conf in
+following lines in
+.Xr bsnmpd 1
+configuration file, in
 .Nm
 module section:
 .Bd -literal -offset indent
@@ -112,6 +114,32 @@ prMax.0 = 100
 prErrFix.0 = 1
 prErrFixCmd.0 = "/usr/local/etc/rc.d/apache22 restart"
 .Ed
+.Pp
+There several parameters that can be used to tune
+.Nm
+module behaviour:
+.Bl -tag -width ".Ic extUpdateInterval"
+.It Ic updateInterval
+Statistics update interval, in ticks.
+The default is 500 ticks (5 seconds).
+.It Ic extCheckInterval
+External commands check interval, in ticks.
+The default is 100 ticks (1 second).
+.It Ic extUpdateInterval
+External commands update interval (used e.g. by fix commands executor),
+in ticks.
+The default is 3000 ticks (30 secondd).
+.It Ic extTimeout
+External commands start timeout.
+The default is 60 seconds.
+.El
+.Pp
+The parameters can be changed either in
+.Xr bsnmpd 1
+configuration file, in
+.Nm
+module section, or at run time, setting the corresponding mibs under
+UCD-SNMP-MIB::ucdavis.1.
 .Sh SEE ALSO
 .Xr bsnmpd 1 
 .Sh AUTHOR

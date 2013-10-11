@@ -1,3 +1,10 @@
+bsnmp-ucd (0.3.7)
+
+  * Instead of having hardcoded, allow to change polling intervals and
+    timeouts either via configuration file or using snmpset.
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2013/10/XX
+
 bsnmp-ucd (0.3.6)
 
   * For prTable run fix command only when troubles with the process(es)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,22 +34,38 @@
 #include "ucd_tree.h"
 #include "ucd_oid.h"
 
-#define UPDATE_INTERVAL		500	/* update interval in ticks */
-#define EXT_CHECK_INTERVAL	100	/* if command exited check interval in ticks */
-#define EXT_UPDATE_INTERVAL	3000	/* ext commands rerun interval in ticks */
-#define EXT_TIMEOUT		60	/* ext commands execution timeout interval in secs */
+#define UCDMAXLEN		256	/* Used as length of buffers. */
 
-#define UCDMAXLEN		256	/* used as length of buffers */
-
-/* Default swap warning limit (kb) */
+/* Default swap warning limit (kb). */
 #define DEFAULTMINIMUMSWAP	16000
 
-/* Default laConfig value */
+/* Default laConfig value. */
 #define LACONFIG		"12.00"
 
+/* snmp_ucd.c */
+void register_update_interval_timer(void (*hook_f)(void*));
+void register_ext_check_interval_timer(void (*hook_f)(void*));
+void restart_update_interval_timer(void);
+void restart_ext_check_interval_timer(void);
+
 /* utils.c */
-extern int ucd_debug;
 extern void sysctlval(const char *, u_long*);
+
+/* mibconfig.c */
+
+/* Update interval in ticks. */
+extern u_int update_interval;
+
+/* Ext command exited check interval in ticks. */
+extern u_int ext_check_interval;
+
+/* Ext command re-run interval in ticks. */
+extern u_int ext_update_interval;
+
+/* Ext command execution timeout in sec. */
+extern u_int ext_timeout;
+
+extern void mibconfig_init (void);
 
 /* mibla.c */
 extern void mibla_init (void);
@@ -59,12 +75,10 @@ extern void mibmemory_init (void);
 
 /* mibss.c */
 extern void mibss_init (void);
-extern void update_ss_data (void*);
 
 /* mibext.c */
+extern void mibext_init(void);
 extern void mibext_fini (void);
-extern void run_extCommands (void*);
-extern void run_extFixCmds (void*);
 
 /* mibdisk,c */
 extern void mibdisk_fini (void);
@@ -73,12 +87,10 @@ extern void mibdisk_init (void);
 /* mibdio.c */
 extern void mibdio_fini (void);
 extern void mibdio_init (void);
-extern void update_dio_data (void*);
 
 /* mibpr.c */
+extern void mibpr_init(void);
 extern void mibpr_fini (void);
-extern void run_prCommands (void*);
-extern void run_prFixCmds (void*);
 
 /* mibversion.c */
 extern void mibversion_init (void);

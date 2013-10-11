@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,6 +73,9 @@ TAILQ_HEAD(mibext_list, mibext);
 
 static struct mibext_list mibext_list = TAILQ_HEAD_INITIALIZER(mibext_list);
 
+static void run_extCommands(void*);
+static void run_extFixCmds(void*);
+
 static struct mibext *
 find_ext(int32_t idx)
 {
@@ -100,7 +103,7 @@ extcmd_sighandler(int sig __unused)
 /*
  * Run commands and collect results of programs that have already finished.
  */
-void
+static void
 run_extCommands(void* arg __unused)
 {
 	struct mibext *extp;
@@ -123,8 +126,8 @@ run_extCommands(void* arg __unused)
 		if (extp->_is_running)
 			continue; /* Command has already been running. */
 
-		if ((current - extp->_ticks) < EXT_UPDATE_INTERVAL)
-			continue; /* EXT_UPDATE_INTERVAL has not passed yet. */
+		if ((current - extp->_ticks) < ext_update_interval)
+			continue; /* ext_update_interval has not passed yet. */
 
 		/* Make a pipe */
 		if (pipe(extp->_fd) == -1) {
@@ -156,7 +159,7 @@ run_extCommands(void* arg __unused)
 
 				/* Trap commands that timeout. */
 				signal(SIGALRM, extcmd_sighandler);
- 				alarm(EXT_TIMEOUT);
+ 				alarm(ext_timeout);
 
 				/* Run the command. */
 				fp = popen((char*) extp->command, "r");
@@ -289,7 +292,7 @@ run_extCommands(void* arg __unused)
 /*
  * Run fix commands.
  */
-void
+static void
 run_extFixCmds(void* arg __unused)
 {
 	struct mibext *extp;
@@ -311,8 +314,8 @@ run_extFixCmds(void* arg __unused)
 		if (extp->result == 0)
 			continue;	/* Checked command exited normaly, no need for fix. */
 
-		if ((current - extp->_fix_ticks) < EXT_UPDATE_INTERVAL)
-			continue;  /* EXT_UPDATE_INTERVAL has not passed yet. */
+		if ((current - extp->_fix_ticks) < ext_update_interval)
+			continue;  /* ext_update_interval has not passed yet. */
 
 		/* Execute the command in the child process. */
 		pid = fork();
@@ -334,7 +337,7 @@ run_extFixCmds(void* arg __unused)
 
 				/* Trap commands that timeout. */
 				signal(SIGALRM, extcmd_sighandler);
-				alarm(EXT_TIMEOUT);
+				alarm(ext_timeout);
 
 				/* Run the command. */
 				status = system((char*) extp->errFixCmd);
@@ -499,6 +502,17 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
 
 	return (ret);
 };
+
+/*
+ * mibext initialization.
+ */
+void
+mibext_init()
+{
+
+	register_ext_check_interval_timer(run_extCommands);
+	register_ext_check_interval_timer(run_extFixCmds);
+}
 
 /*
  * Free mibext list.
