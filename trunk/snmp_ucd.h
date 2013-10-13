@@ -43,6 +43,8 @@
 #define LACONFIG		"12.00"
 
 /* snmp_ucd.c */
+extern const struct snmp_module config;
+
 void register_update_interval_timer(void (*hook_f)(void*));
 void register_ext_check_interval_timer(void (*hook_f)(void*));
 void restart_update_interval_timer(void);
