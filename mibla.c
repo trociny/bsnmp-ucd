@@ -61,7 +61,7 @@ static const u_char *la_names[] = {
 };
 
 void
-mibla_init()
+mibla_init(void)
 {
 	double sys_la[3];
 	int i;

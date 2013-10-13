@@ -422,7 +422,7 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
  * mibpr initialization.
  */
 void
-mibpr_init()
+mibpr_init(void)
 {
 
 	register_ext_check_interval_timer(run_prCommands);
