@@ -133,7 +133,7 @@ percentages(int cnt, int *out, register long *new, register long *old, long *dif
  * Init all our ss objects
  */
 void
-mibss_init()
+mibss_init(void)
 {
 
 	pagesize = getpagesize();

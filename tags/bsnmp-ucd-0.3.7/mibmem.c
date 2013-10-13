@@ -128,7 +128,7 @@ static uint64_t last_mem_update;	/* Ticks of the last mem data update. */
  * Init all our memory objects.
  */
 void
-mibmemory_init()
+mibmemory_init(void)
 {
 
 	pagesize = getpagesize();
