@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,18 +41,6 @@
 #include "snmp_ucd.h"
 
 /*
- * We update statistics every UPDATE_INTERVAL seconds (< 1 minute) but
- * want to have values averaged over the last minute. Thus we store
- * the last RING_SIZE values in a ring buffer.
- */
-
-/* Averaging interval in ticks. */
-#define AVG_INTERVAL	6000
-
-/* Buffer size to store cpu updates. */
-#define RING_SIZE	AVG_INTERVAL / UPDATE_INTERVAL
-
-/*
  * mibmemory structures and functions.
  */
 
@@ -81,9 +69,14 @@ struct mibss {
 
 static struct mibss mibss;
 
-static int pagesize;	/* Initialized in init_mibss(). */
+/* Averaging interval in ticks. */
+#define AVG_INTERVAL	6000
+
+static int pagesize;	/* Initialized in mibss_init(). */
 
 #define pagetok(size) ((size) * (pagesize >> 10))
+
+static void update_ss_data(void*);
 
 /*
  *  (This has been stolen from BSD top utility)
@@ -127,7 +120,7 @@ percentages(int cnt, int *out, register long *new, register long *old, long *dif
     half_total = total_change / 2l;
 
     /* Do not divide by 0. Causes Floating point exception. */
-    if(total_change) {
+    if (total_change) {
         for (i = 0; i < cnt; i++)
 		*out++ = (int)((*diffs++ * 1000 + half_total) / total_change);
     }
@@ -150,9 +143,71 @@ mibss_init()
 	mibss.errorName = (const u_char *)"systemStats";
 
 	update_ss_data(NULL);
+
+	register_update_interval_timer(update_ss_data);
 }
 
-void
+/*
+ * We update statistics every update_interval seconds (< 1 minute) but
+ * want to have values averaged over the last minute (AVG_INTERVAL).
+ * Thus we store the last ring_size values in a ring buffer.
+ */
+static void
+realloc_bufs(long ***cp_oldp, long ***cp_diffp, size_t *ring_sizep)
+{
+	long **cp_old, **cp_diff, **p;
+	u_int ring_size, i;
+	size_t tmp;
+
+	ring_size = AVG_INTERVAL / update_interval;
+	if (ring_size == 0)
+		ring_size = 1;
+	if (ring_size == *ring_sizep)
+		return;
+
+	cp_old = calloc(ring_size, sizeof(*cp_old));
+	cp_diff = calloc(ring_size, sizeof(*cp_diff));
+	if (cp_old == NULL || cp_diff == NULL) {
+		syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
+		goto free;
+	}
+	for (p = cp_old; ; p = cp_diff) {
+		for (i = 0; i < ring_size; i++) {
+			p[i] = calloc(CPUSTATES, sizeof(**p));
+			if (p[i] == NULL) {
+				syslog(LOG_ERR, "failed to malloc: %s: %m",
+				    __func__);
+				goto free;
+			}
+		}
+		if (p == cp_diff)
+			break;
+	}
+	p = *cp_oldp;
+	*cp_oldp = cp_old;
+	cp_old = p;
+
+	p = *cp_diffp;
+	*cp_diffp = cp_diff;
+	cp_diff = p;
+
+	tmp = *ring_sizep;
+	*ring_sizep = ring_size;
+	ring_size = tmp;
+free:
+	if (cp_old != NULL) {
+		for (i = 0; i < ring_size; i++)
+			free(cp_old[i]);
+		free(cp_old);
+	}
+	if (cp_diff != NULL) {
+		for (i = 0; i < ring_size; i++)
+			free(cp_diff[i]);
+		free(cp_diff);
+	}
+}
+
+static void
 update_ss_data(void* arg  __unused)
 {
 	static int32_t oswappgsin = -1;
@@ -162,15 +217,16 @@ update_ss_data(void* arg  __unused)
 	static uint64_t last_update;
 	static int cpu_states[CPUSTATES];
 	static long cp_time[CPUSTATES];
-	static long cp_old[RING_SIZE][CPUSTATES];
-	static long cp_diff[RING_SIZE][CPUSTATES];
+	static long **cp_old;
+	static long **cp_diff;
+	static size_t ring_size;
 	static int cnt;
 	uint64_t current;
 	int64_t delta;
 	size_t cp_time_size;
 	u_long val;
 
-	cp_time_size = sizeof(cp_time);
+	realloc_bufs(&cp_old, &cp_diff, &ring_size);
 
 	sysctlval("vm.stats.vm.v_swappgsin", &val);
 	mibss.rawSwapIn = (uint32_t) val;
@@ -181,23 +237,20 @@ update_ss_data(void* arg  __unused)
 	sysctlval("vm.stats.sys.v_swtch", &val);
 	mibss.rawContexts = (uint32_t) val;
 
+	cp_time_size = sizeof(cp_time);
 	if (sysctlbyname("kern.cp_time", &cp_time, &cp_time_size, NULL, 0) < 0)
 		syslog(LOG_ERR, "sysctl failed: %s: %m", __func__);
 	/* Convert cp_time counts to percentages * 10. */
 	percentages(CPUSTATES, cpu_states, cp_time,
-	    cp_old[cnt % RING_SIZE], cp_diff[cnt % RING_SIZE]);
+	    cp_old[cnt % ring_size], cp_diff[cnt % ring_size]);
 
 	current = get_ticks();
 	delta = current - last_update;
 	if (last_update > 0 && delta > 0) {
-		mibss.swapIn = pagetok(mibss.rawSwapIn - oswappgsin) /
-		    (current-last_update);
-		mibss.swapOut = pagetok(mibss.rawSwapOut - oswappgsout) /
-		    (current-last_update);
-		mibss.sysInterrupts = (mibss.rawInterrupts - ointr) /
-		    (current-last_update);
-		mibss.sysContext = (mibss.rawContexts - oswtch) /
-		    (current-last_update);
+		mibss.swapIn = pagetok(mibss.rawSwapIn - oswappgsin) / delta;
+		mibss.swapOut = pagetok(mibss.rawSwapOut - oswappgsout) / delta;
+		mibss.sysInterrupts = (mibss.rawInterrupts - ointr) / delta;
+		mibss.sysContext = (mibss.rawContexts - oswtch) / delta;
 
 #define	_round(x) ((x) / 10 + (((x) % 10) >= 5 ? 1 : 0))
 		mibss.cpuUser = _round(cpu_states[CP_USER]);

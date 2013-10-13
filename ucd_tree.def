@@ -2,6 +2,12 @@
   (4 private
     (1 enterprises
       (2021 ucdavis
+        (1 config
+          (1 updateInterval INTEGER op_config GET SET)
+          (2 extCheckInterval INTEGER op_config GET SET)
+          (3 extUpdateInterval INTEGER op_config GET SET)
+          (4 extTimeout INTEGER op_config GET SET)
+        )
         (2 prTable
           (1 prEntry : INTEGER op_prTable
             (1 prIndex INTEGER GET)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Mikolaj Golub
+ * Copyright (c) 2009-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: mibpr.c 65 2009-12-19 15:36:51Z to.my.trociny $
+ * $Id$
  *
  */
 
@@ -71,6 +71,9 @@ TAILQ_HEAD(mibpr_list, mibpr);
 
 static struct mibpr_list mibpr_list = TAILQ_HEAD_INITIALIZER(mibpr_list);
 static uint64_t _ticks;
+
+static void run_prCommands(void*);
+static void run_prFixCmds(void*);
 
 static struct mibpr *
 find_pr(int32_t idx)
@@ -155,8 +158,8 @@ run_prCommands(void* arg __unused)
 
 	current = get_ticks();
 
-	 /* Run counting only if EXT_UPDATE_INTERVAL exceeded. */
-	if ((current - _ticks) < EXT_UPDATE_INTERVAL)
+	 /* Run counting only if ext_update_interval exceeded. */
+	if ((current - _ticks) < ext_update_interval)
 		return;
 
 	kd = kvm_openfiles(_PATH_DEVNULL, _PATH_DEVNULL, NULL, O_RDONLY, errbuf);
@@ -194,8 +197,8 @@ run_prFixCmds(void* arg __unused)
 		if (!prp->errFixCmd)
 			continue; /* No command specified. */
 
-		if ((current - prp->_fix_ticks) < EXT_UPDATE_INTERVAL)
-			continue; /* EXT_UPDATE_INTERVAL has not exceeded. */
+		if ((current - prp->_fix_ticks) < ext_update_interval)
+			continue; /* ext_update_interval has not exceeded. */
 
 		if (prp->count < 0 ||
 		    ((prp->min == 0 || prp->count >= prp->min) &&
@@ -223,7 +226,7 @@ run_prFixCmds(void* arg __unused)
 
 				/* Trap commands that timed out. */
 				signal(SIGALRM, prcmd_sighandler);
-				alarm(EXT_TIMEOUT);
+				alarm(ext_timeout);
 
 				/* Run the command. */
 				status = system((char*)prp->errFixCmd);
@@ -414,6 +417,17 @@ op_prTable(struct snmp_context * context __unused, struct snmp_value * value,
 
 	return (ret);
 };
+
+/*
+ * mibpr initialization.
+ */
+void
+mibpr_init()
+{
+
+	register_ext_check_interval_timer(run_prCommands);
+	register_ext_check_interval_timer(run_prFixCmds);
+}
 
 /*
  * Free mibpr list.

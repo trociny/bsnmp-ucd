@@ -9,6 +9,11 @@
 #
 begemotSnmpdModulePath."ucd" = "/usr/local/lib/snmp_ucd.so"
 %ucd
+updateInterval = 500
+extCheckInterval = 100
+extUpdateInterval = 3000
+extTimeout = 60
+
 memMinimumSwap = 1600
 memSwapErrorMsg = "No free swap!"
 

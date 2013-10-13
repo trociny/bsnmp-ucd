@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -151,8 +151,8 @@ static void
 update_memory_data(void)
 {
 
-	/* Update data only once in UPDATE_INTERVAL. */
-	if (get_ticks() - last_mem_update > UPDATE_INTERVAL) {
+	/* Update data only once in update_interval. */
+	if (get_ticks() - last_mem_update > update_interval) {
 		get_mem_data();
 		last_mem_update = get_ticks();
 	}
