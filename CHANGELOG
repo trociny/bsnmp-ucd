@@ -5,7 +5,7 @@ bsnmp-ucd (0.3.7)
 
   * Rewrite Makefile to use bsd.snmpmod.mk.
 
--- Mikolaj Golub <to.my.trociny@gmail.com> 2013/10/XX
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2013/10/13
 
 bsnmp-ucd (0.3.6)
 
