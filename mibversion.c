@@ -61,7 +61,7 @@ static struct mibversion mibver;
  * Fill our version info.
  */
 void
-mibversion_init()
+mibversion_init(void)
 {
 	mibver.index = 0;
 	mibver.tag = (const u_char*)"$Name: bsnmp-ucd-0-3-6 $";

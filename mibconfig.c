@@ -38,7 +38,7 @@ u_int ext_timeout;
  * Initialize configuration parameters.
  */
 void
-mibconfig_init()
+mibconfig_init(void)
 {
 
 	update_interval = 500;
