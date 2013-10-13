@@ -507,7 +507,7 @@ op_extTable(struct snmp_context * context __unused, struct snmp_value * value,
  * mibext initialization.
  */
 void
-mibext_init()
+mibext_init(void)
 {
 
 	register_ext_check_interval_timer(run_extCommands);
