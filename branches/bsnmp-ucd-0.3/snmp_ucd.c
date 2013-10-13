@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,12 @@
  *
  */
 
+#include <sys/types.h>
+#include <sys/queue.h>
+
+#include <stdlib.h>
+#include <syslog.h>
+
 #include "snmp_ucd.h"
 
 /* our module handle */
@@ -38,9 +44,80 @@ static const struct asn_oid oid_ucdavis = OIDX_ucdavis;
 /* the Object Resource registration index */
 static u_int ucdavis_index = 0;
 
-/* timer id */
-static void *timer_ss, *timer_ext, *timer_fix, *timer_pr, *timer_prfix,
-    *timer_dio;
+/* timers id */
+static void *update_interval_timer, *ext_check_interval_timer;
+
+struct timer_hook {
+	void	(*h_func)(void*);
+        STAILQ_ENTRY(timer_hook)	h_link;
+};
+
+STAILQ_HEAD(timer_hook_list, timer_hook);
+
+static struct timer_hook_list update_interval_timer_hook_list =
+    STAILQ_HEAD_INITIALIZER(update_interval_timer_hook_list);
+static struct timer_hook_list ext_check_interval_timer_hook_list =
+    STAILQ_HEAD_INITIALIZER(ext_check_interval_timer_hook_list);
+
+static void
+register_timer(struct timer_hook_list * hooks, void (*hook_f)(void*))
+{
+	struct timer_hook *hook;
+
+	hook = malloc(sizeof(*hook));
+	if (hook == NULL) {
+		syslog(LOG_ERR, "failed to malloc: %s: %m", __func__);
+		return;
+	}
+	hook->h_func = hook_f;
+	STAILQ_INSERT_TAIL(hooks, hook, h_link);
+}
+
+void
+register_update_interval_timer(void (*hook_f)(void*))
+{
+
+	register_timer(&update_interval_timer_hook_list, hook_f);
+}
+
+void
+register_ext_check_interval_timer(void (*hook_f)(void*))
+{
+
+	register_timer(&update_interval_timer_hook_list, hook_f);
+}
+
+static void
+run_timer_hooks(void* arg)
+{
+	struct timer_hook_list *hooks;
+	struct timer_hook *hook;
+
+	hooks = (struct timer_hook_list *)arg;
+
+	STAILQ_FOREACH(hook, hooks, h_link)
+	    hook->h_func(NULL);
+}
+
+void
+restart_update_interval_timer()
+{
+
+	timer_stop(update_interval_timer);
+	update_interval_timer = timer_start_repeat(update_interval,
+	    update_interval, run_timer_hooks,
+	    &update_interval_timer_hook_list, module);
+}
+
+void
+restart_ext_check_interval_timer()
+{
+
+	timer_stop(ext_check_interval_timer);
+	ext_check_interval_timer = timer_start_repeat(ext_check_interval,
+	    ext_check_interval, run_timer_hooks,
+	    &ext_check_interval_timer_hook_list, module);
+}
 
 /* the initialisation function */
 static int
@@ -48,34 +125,22 @@ ucd_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 {
 	module = mod;
 
+	mibconfig_init();
 	mibla_init();
-
 	mibmemory_init();
-
 	mibss_init();
-
-	timer_ss = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				update_ss_data, NULL, mod);
-
-	timer_ext = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
-				run_extCommands, NULL, mod);
-
-	timer_fix = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
-				run_extFixCmds, NULL, mod);
-
-	timer_pr = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
-				run_prCommands, NULL, mod);
-
-	timer_prfix = timer_start_repeat(EXT_CHECK_INTERVAL, EXT_CHECK_INTERVAL,
-				run_prFixCmds, NULL, mod);
-
 	mibdisk_init();
-
 	mibdio_init();
-
-	timer_dio = timer_start_repeat(UPDATE_INTERVAL, UPDATE_INTERVAL,
-				update_dio_data, NULL, mod);
+	mibext_init();
+	mibpr_init();
 	mibversion_init();
+
+	update_interval_timer = timer_start_repeat(update_interval,
+	    update_interval, run_timer_hooks,
+	    &update_interval_timer_hook_list, module);
+	ext_check_interval_timer = timer_start_repeat(ext_check_interval,
+	    ext_check_interval, run_timer_hooks,
+	    &ext_check_interval_timer_hook_list, module);
 
 	return (0);
 }
@@ -92,12 +157,9 @@ ucd_start(void)
 static int
 ucd_fini(void)
 {
-	timer_stop(timer_ss);
-	timer_stop(timer_ext);
-	timer_stop(timer_fix);
-	timer_stop(timer_pr);
-	timer_stop(timer_prfix);
-	timer_stop(timer_dio);
+
+	timer_stop(update_interval_timer);
+	timer_stop(ext_check_interval_timer);
 	mibext_fini();
 	mibdisk_fini();
 	mibdio_fini();

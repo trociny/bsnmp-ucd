@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2012 Mikolaj Golub
+ * Copyright (c) 2007-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,6 +70,8 @@ static int version_ok;			/* Userland and kernel match. */
 static int ondevs;			/* Old number of devices. */
 static uint64_t last_dio_update;	/* Ticks of the last disk data update. */
 static double exp1, exp5, exp15;	/* DiskIOLA exponents. */
+
+static void update_dio_data(void*);
 
 static struct mibdio *
 find_dio (int32_t idx)
@@ -303,4 +305,6 @@ mibdio_init(void)
 	}
 
 	update_dio_data(NULL);
+
+	register_update_interval_timer(update_dio_data);
 }

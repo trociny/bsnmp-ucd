@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 Mikolaj Golub
+ * Copyright (c) 2009-2013 Mikolaj Golub
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,7 +111,7 @@ update_disk_data(void)
 	if (!version_ok)
 		return (-1);
 
-	if ((get_ticks() - last_disk_update) < UPDATE_INTERVAL)
+	if ((get_ticks() - last_disk_update) < update_interval)
 		return (0);
 
 	last_disk_update = get_ticks();
