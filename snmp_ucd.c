@@ -100,7 +100,7 @@ run_timer_hooks(void* arg)
 }
 
 void
-restart_update_interval_timer()
+restart_update_interval_timer(void)
 {
 
 	timer_stop(update_interval_timer);
@@ -110,7 +110,7 @@ restart_update_interval_timer()
 }
 
 void
-restart_ext_check_interval_timer()
+restart_ext_check_interval_timer(void)
 {
 
 	timer_stop(ext_check_interval_timer);

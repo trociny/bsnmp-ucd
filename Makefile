@@ -12,7 +12,7 @@ SHLIB_MINOR=	0
 
 MOD=	ucd
 SRCS=	mibconfig.c mibdio.c mibdisk.c mibext.c mibla.c mibmem.c mibpr.c \
-	mibss.c mibversion.c utils.c
+	mibss.c mibversion.c snmp_ucd.c utils.c
 MAN=	bsnmp-${MOD}.8
 
 XSYM=	ucdavis
