@@ -1,11 +1,11 @@
-bsnmp-ucd (0.3.7)
+bsnmp-ucd (0.4.0)
 
   * Instead of having hardcoded, allow to change polling intervals and
     timeouts either via configuration file or using snmpset.
 
   * Rewrite Makefile to use bsd.snmpmod.mk.
 
--- Mikolaj Golub <to.my.trociny@gmail.com> 2013/10/13
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2013/10/14
 
 bsnmp-ucd (0.3.6)
 
