@@ -64,7 +64,7 @@ void
 mibversion_init(void)
 {
 	mibver.index = 0;
-	mibver.tag = (const u_char*)"$Name: bsnmp-ucd-0-3-6 $";
+	mibver.tag = (const u_char*)"$Name: bsnmp-ucd-0-4-1 $";
 	mibver.date = (const u_char*)"$Date$";
 	mibver.ident = (const u_char*)"$Id$";
 	mibver.configureOptions = (const u_char*)"";
