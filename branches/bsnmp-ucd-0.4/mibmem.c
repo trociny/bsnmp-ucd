@@ -116,6 +116,8 @@ get_mem_data(void)
 	mibmem.totalFree = pagetok(total.t_free);
 	sysctlval("vm.stats.vm.v_cache_count", &val);
 	mibmem.cached = (int32_t) pagetok(val);
+	sysctlval("vm.stats.vm.v_inactive_count", &val);
+	mibmem.cached += (int32_t) pagetok(val);
 	sysctlval("vfs.bufspace", &val);
 	mibmem.buffer = (int32_t) (val / 1024);
 	mibmem.shared = pagetok(total.t_vmshr + total.t_avmshr +
