@@ -1,0 +1,49 @@
+# $Id$
+#
+# Example configuration file for bsnmpd(1).
+#
+# Only part related to bsnmp-ucd is shown.
+
+# 
+# bsnmp-ucd (8)
+#
+begemotSnmpdModulePath."ucd" = "/usr/local/lib/snmp_ucd.so"
+%ucd
+updateInterval = 500
+extCheckInterval = 100
+extUpdateInterval = 3000
+extTimeout = 60
+
+memMinimumSwap = 1600
+memSwapErrorMsg = "No free swap!"
+
+laConfig.1 = "6.0"
+laConfig.2 = "5.0"
+laConfig.3 = "4.0"
+
+laErrMessage.1 = "1min load average is high!"
+laErrMessage.2 = "5min load average is high!"
+laErrMessage.3 = "15min load average is high!"
+
+# Process table
+
+prNames.0 = "httpd"
+prMin.0 = 3
+prMax.0 = 100
+
+prErrFix.0 = 1
+prErrFixCmd.0 = "/usr/local/etc/rc.d/apache22 restart"
+
+# Extension commands (extTable)
+
+extNames.0 = "uname"
+extCommand.0 = "/usr/bin/uname -a"
+
+extNames.1 = "uptime"
+extCommand.1 = "/usr/bin/uptime"
+
+# example of extension with fix command
+extNames.2 = "apache"
+extCommand.2 = "/usr/local/etc/rc.d/apache status"
+extErrFix.2 = 1
+extErrFixCmd.2 = "/usr/local/etc/rc.d/apache restart"
