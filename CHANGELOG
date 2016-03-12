@@ -1,3 +1,10 @@
+bsnmp-ucd (0.X.X)
+
+  * Force making ucd_oid.h and ucd_tree.h before compiling other files.
+    This fixes build on the recent 11.0-CURRENT.
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2016/XX/XX
+
 bsnmp-ucd (0.4.1)
 
   * Similarly to net-snmpd, count into memCached inactive pages too
