@@ -28,4 +28,7 @@ WARNS=	6
 DPADD=	${LIBKVM} ${LIBDEVSTAT} ${LIBM}
 LDADD=	-lkvm -ldevstat -lm
 
+OBJS_DEPEND_GUESS+=	${SRCS:M*.h}
+${OBJS}:		${OBJS_DEPEND_GUESS}
+
 .include <bsd.snmpmod.mk>
