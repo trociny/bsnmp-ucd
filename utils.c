@@ -42,5 +42,5 @@ sysctlval(const char *name, u_long *val)
 	*val = 0;
 	len = sizeof(val);
   	if (sysctlbyname(name, val, &len, NULL, 0) != 0)
-		syslog(LOG_WARNING, "%s: %m", __func__);
+		syslog(LOG_WARNING, "%s(\"%s\"): %m", __func__, name);
 }
