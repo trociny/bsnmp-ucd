@@ -114,8 +114,10 @@ get_mem_data(void)
 	sysctlval("vm.stats.vm.v_free_count", &val);
 	mibmem.availReal = pagetok(val);
 	mibmem.totalFree = pagetok(total.t_free);
-	sysctlval("vm.stats.vm.v_cache_count", &val);
-	mibmem.cached = (int32_t) pagetok(val);
+	if (osreldate < 1200016) {
+		sysctlval("vm.stats.vm.v_cache_count", &val);
+		mibmem.cached = (int32_t) pagetok(val);
+	}
 	sysctlval("vm.stats.vm.v_inactive_count", &val);
 	mibmem.cached += (int32_t) pagetok(val);
 	sysctlval("vfs.bufspace", &val);

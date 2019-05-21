@@ -27,12 +27,14 @@
  *
  */
 
+#include <unistd.h>
 #include "snmp_ucd.h"
 
 u_int update_interval;
 u_int ext_check_interval;
 u_int ext_update_interval;
 u_int ext_timeout;
+int osreldate;
 
 /*
  * Initialize configuration parameters.
@@ -45,6 +47,7 @@ mibconfig_init(void)
 	ext_check_interval = 100;
 	ext_update_interval = 3000;
 	ext_timeout = 60;
+	osreldate = getosreldate();
 }
 
 int

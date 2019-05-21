@@ -67,6 +67,9 @@ extern u_int ext_update_interval;
 /* Ext command execution timeout in sec. */
 extern u_int ext_timeout;
 
+/* __FreeBSD_version value of the running kernel. */
+extern int osreldate;
+
 extern void mibconfig_init(void);
 
 /* mibla.c */
