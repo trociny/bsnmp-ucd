@@ -287,7 +287,7 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 		break;
 
 	case LEAF_dskAvailLow:
-		value->v.uint32 = dp->avail & INT32_MAX;
+		value->v.uint32 = dp->avail & UINT32_MAX;
 		break;
 
 	case LEAF_dskAvailHigh:
@@ -302,7 +302,7 @@ op_dskTable(struct snmp_context *context __unused, struct snmp_value *value,
 		break;
 
 	case LEAF_dskUsedLow:
-		value->v.uint32 = dp->used & INT32_MAX;
+		value->v.uint32 = dp->used & UINT32_MAX;
 		break;
 
 	case LEAF_dskUsedHigh:
