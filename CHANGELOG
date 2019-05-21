@@ -1,3 +1,13 @@
+bsnmp-ucd (0.4.3)
+
+  * Fix dskAvailLow and dskUsedLow mibs for more 2T size
+    (submitted by nyan at freebsd.org)
+
+  * Small improvements for FreeBSD 12 (submitted by glebius at
+    freebsd.org)
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2019/05/21
+
 bsnmp-ucd (0.4.2)
 
   * Force making ucd_oid.h and ucd_tree.h before compiling other files.
