@@ -117,6 +117,8 @@ get_mem_data(void)
 	if (osreldate < 1200016) {
 		sysctlval("vm.stats.vm.v_cache_count", &val);
 		mibmem.cached = (int32_t) pagetok(val);
+	} else {
+		mibmem.cached = 0;
 	}
 	sysctlval("vm.stats.vm.v_inactive_count", &val);
 	mibmem.cached += (int32_t) pagetok(val);
