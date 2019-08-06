@@ -1,3 +1,10 @@
+bsnmp-ucd (0.4.4)
+
+  * fix initialization of mibmem.cached
+    (submitted by topical at gmx.net)
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2019/08/06
+
 bsnmp-ucd (0.4.3)
 
   * Fix dskAvailLow and dskUsedLow mibs for more 2T size
