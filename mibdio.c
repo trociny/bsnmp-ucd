@@ -172,7 +172,7 @@ update_dio_data(void *arg __unused)
 		if (diop->_busy_time.sec > 0) {
 			busy_time = dev.busy_time.sec - diop->_busy_time.sec +
 			    (double)(dev.busy_time.frac - diop->_busy_time.frac)
-			    / 0xffffffffffffffffull;
+			    / (double)0xffffffffffffffffull;
 			if (busy_time < 0) /* FP loss of precision near zero. */
 				busy_time = 0;
 			percent = busy_time * 100 / interval;
