@@ -1,3 +1,9 @@
+bsnmp-ucd (0.4.5)
+
+  * fix build on newer FreeBSD (implicit-int-float-conversion error)
+
+-- Mikolaj Golub <to.my.trociny@gmail.com> 2020/03/13
+
 bsnmp-ucd (0.4.4)
 
   * fix initialization of mibmem.cached
